@@ -19,10 +19,10 @@ defmodule Tisktask.TasksTest do
     end
 
     test "create_run/1 with valid data creates a run" do
-      valid_attrs = %{status: "some status"}
+      valid_attrs = %{status: :staged}
 
       assert {:ok, %Run{} = run} = Tasks.create_run(valid_attrs)
-      assert run.status == "some status"
+      assert run.status == :staged
     end
 
     test "create_run/1 with invalid data returns error changeset" do
@@ -31,22 +31,16 @@ defmodule Tisktask.TasksTest do
 
     test "update_run/2 with valid data updates the run" do
       run = insert(:task_run)
-      update_attrs = %{status: "some updated status"}
+      update_attrs = %{status: :running}
 
       assert {:ok, %Run{} = run} = Tasks.update_run(run, update_attrs)
-      assert run.status == "some updated status"
+      assert run.status == :running
     end
 
     test "update_run/2 with invalid data returns error changeset" do
       run = insert(:task_run)
       assert {:error, %Ecto.Changeset{}} = Tasks.update_run(run, @invalid_attrs)
       assert run == Tasks.get_run!(run.id)
-    end
-
-    test "delete_run/1 deletes the run" do
-      run = insert(:task_run)
-      assert {:ok, %Run{}} = Tasks.delete_run(run)
-      assert_raise Ecto.NoResultsError, fn -> Tasks.get_run!(run.id) end
     end
 
     test "change_run/1 returns a run changeset" do

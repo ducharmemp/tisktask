@@ -13,8 +13,7 @@ defmodule Workers.TaskRunWorker do
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"task_run_id" => task_run_id}}) do
-    Temp.track!()
-    {:ok, build_context} = Temp.mkdir()
+    {:ok, build_context} = Briefly.create(type: :directory)
 
     task_run =
       task_run_id |> Tasks.get_run!() |> Tisktask.Repo.preload(event: [:repo])
@@ -24,11 +23,15 @@ defmodule Workers.TaskRunWorker do
     clone_repo_uri = Tisktask.SourceControl.Repository.clone_uri(task_run.event.repo)
 
     Git.clone_into(clone_repo_uri, build_context, task_run.event.head_sha, into: TaskLogs.stream_to(task_run))
+
     Git.checkout(build_context, task_run.event.head_sha, into: TaskLogs.stream_to(task_run))
     all_jobs_to_run = Filesystem.all_jobs_for(build_context, task_run.event.type)
     build_file = Filesystem.build_file_for(build_context, task_run.event.type)
 
-    Buildah.build_image(build_context, build_file, "#{task_run.event.repo.name}:#{task_run.event.head_sha}",
+    Buildah.build_image(
+      build_context,
+      build_file,
+      "#{task_run.event.repo.name}:#{task_run.event.head_sha}",
       into: TaskLogs.stream_to(task_run)
     )
 
@@ -46,7 +49,6 @@ defmodule Workers.TaskRunWorker do
 
     Tasks.complete_run!(task_run)
 
-    Temp.cleanup()
     :ok
   end
 
@@ -59,7 +61,9 @@ defmodule Workers.TaskRunWorker do
     )
 
     {_, exit_status} =
-      Tisktask.Podman.run_job("localhost/#{task_run.event.repo.name}:#{task_run.event.head_sha}", child_job.program_path,
+      Tisktask.Podman.run_job(
+        "localhost/#{task_run.event.repo.name}:#{task_run.event.head_sha}",
+        child_job.program_path,
         into: Tisktask.TaskLogs.stream_to(child_job)
       )
 

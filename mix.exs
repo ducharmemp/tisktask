@@ -33,7 +33,7 @@ defmodule Tisktask.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.8.0-rc.1", override: true},
+      {:phoenix, "~> 1.8.0-rc.2", override: true},
       {:phoenix_ecto, "~> 4.5"},
       {:ecto_sql, "~> 3.10"},
       {:postgrex, ">= 0.0.0"},
@@ -58,7 +58,7 @@ defmodule Tisktask.MixProject do
       {:oban_web, "~> 2.11"},
       {:igniter, "~> 0.5", only: [:dev]},
       {:muontrap, "~> 1.6"},
-      {:temp, "~> 0.4"},
+      {:briefly, "~> 0.5"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:styler, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_machina, "~> 2.8", only: :test},
