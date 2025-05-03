@@ -15,7 +15,7 @@ config :swoosh, api_client: Swoosh.ApiClient.Req
 # before starting your production server.
 config :swoosh, local: false
 
-config :tisktask, TisktaskWeb.Endpoint, cache_static_manifest: "priv/static/cache_manifest.json"
+config :tester, TisktaskWeb.Endpoint, cache_static_manifest: "priv/static/cache_manifest.json"
 
 # Runtime production configuration, including reading
 # of environment variables, is done on config/runtime.exs.
