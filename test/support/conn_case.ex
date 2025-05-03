@@ -23,8 +23,9 @@ defmodule TisktaskWeb.ConnCase do
 
       import Phoenix.ConnTest
       import Plug.Conn
-      import TisktaskWeb.ConnCase
       import Tisktask.Factory
+      import TisktaskWeb.ConnCase
+
       # The default endpoint for testing
       @endpoint TisktaskWeb.Endpoint
 

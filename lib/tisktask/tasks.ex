@@ -40,7 +40,7 @@ defmodule Tisktask.Tasks do
     log_file_path = Tisktask.TaskLogs.ensure_log_file!()
 
     %Run{}
-    |> Run.changeset(attrs |> Map.put_new(:log_file, log_file_path))
+    |> Run.changeset(Map.put_new(attrs, :log_file, log_file_path))
     |> Ecto.Changeset.put_assoc(:event, event)
     |> Repo.insert()
     |> tap(fn {:ok, run} ->
@@ -102,7 +102,7 @@ defmodule Tisktask.Tasks do
 
     child_job =
       %Job{}
-      |> Job.changeset(attrs |> Map.put_new(:log_file, log_file_path))
+      |> Job.changeset(Map.put_new(attrs, :log_file, log_file_path))
       |> Ecto.Changeset.put_assoc(:parent_run, run)
       |> Repo.insert!()
 

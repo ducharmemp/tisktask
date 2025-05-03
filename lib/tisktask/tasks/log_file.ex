@@ -1,4 +1,5 @@
 defmodule Tisktask.Tasks.LogFile do
+  @moduledoc false
   defstruct [:loggable, :file_stream]
 
   def new(loggable) do
@@ -11,8 +12,8 @@ end
 
 defimpl Collectable, for: Tisktask.Tasks.LogFile do
   alias Phoenix.PubSub
-  alias Tisktask.Tasks.Run
   alias Tisktask.Tasks.Job
+  alias Tisktask.Tasks.Run
 
   def into(%{file_stream: file_stream, loggable: loggable} = log_file) do
     {initial, into} = Collectable.into(file_stream)
@@ -37,7 +38,7 @@ defimpl Collectable, for: Tisktask.Tasks.LogFile do
   end
 
   def to_serializable_log(log) do
-    id = log.id |> DateTime.to_iso8601()
+    id = DateTime.to_iso8601(log.id)
     "#{id} #{log.log}"
   end
 

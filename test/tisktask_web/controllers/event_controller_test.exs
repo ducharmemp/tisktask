@@ -1,8 +1,6 @@
 defmodule TisktaskWeb.EventControllerTest do
   use TisktaskWeb.ConnCase
 
-  import Tisktask.SourceControlFixtures
-
   alias Tisktask.SourceControl.Event
 
   @create_attrs %{
@@ -86,7 +84,7 @@ defmodule TisktaskWeb.EventControllerTest do
   end
 
   defp create_event(_) do
-    event = event_fixture()
+    event = insert(:source_control_event)
 
     %{event: event}
   end

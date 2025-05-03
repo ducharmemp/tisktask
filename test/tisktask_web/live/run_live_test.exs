@@ -2,13 +2,12 @@ defmodule TisktaskWeb.RunLiveTest do
   use TisktaskWeb.ConnCase
 
   import Phoenix.LiveViewTest
-  import Tisktask.TasksFixtures
 
   @create_attrs %{status: "some status"}
   @update_attrs %{status: "some updated status"}
   @invalid_attrs %{status: nil}
   defp create_run(_) do
-    run = run_fixture()
+    run = insert(:task_run)
 
     %{run: run}
   end

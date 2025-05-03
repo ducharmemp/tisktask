@@ -1,5 +1,6 @@
 defmodule Tisktask.Factory do
   use ExMachina.Ecto, repo: Tisktask.Repo
-
-  import Tisktask.Factories.SourceControlEventFactory
+  use Tisktask.Factories.SourceControlEventFactory
+  use Tisktask.Factories.Tasks.RunFactory
+  use Tisktask.Factories.Tasks.JobFactory
 end

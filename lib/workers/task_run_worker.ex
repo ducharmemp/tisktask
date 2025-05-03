@@ -23,19 +23,12 @@ defmodule Workers.TaskRunWorker do
 
     clone_repo_uri = Tisktask.SourceControl.Repository.clone_uri(task_run.event.repo)
 
-    clone_repo_uri
-    |> Git.clone_into(build_context, task_run.event.head_sha, into: TaskLogs.stream_to(task_run))
-
-    build_context
-    |> Git.checkout(task_run.event.head_sha, into: TaskLogs.stream_to(task_run))
-
+    Git.clone_into(clone_repo_uri, build_context, task_run.event.head_sha, into: TaskLogs.stream_to(task_run))
+    Git.checkout(build_context, task_run.event.head_sha, into: TaskLogs.stream_to(task_run))
     all_jobs_to_run = Filesystem.all_jobs_for(build_context, task_run.event.type)
     build_file = Filesystem.build_file_for(build_context, task_run.event.type)
 
-    build_context
-    |> Buildah.build_image(
-      build_file,
-      "#{task_run.event.repo.name}:#{task_run.event.head_sha}",
+    Buildah.build_image(build_context, build_file, "#{task_run.event.repo.name}:#{task_run.event.head_sha}",
       into: TaskLogs.stream_to(task_run)
     )
 
@@ -66,8 +59,7 @@ defmodule Workers.TaskRunWorker do
     )
 
     {_, exit_status} =
-      "localhost/#{task_run.event.repo.name}:#{task_run.event.head_sha}"
-      |> Tisktask.Podman.run_job(child_job.program_path,
+      Tisktask.Podman.run_job("localhost/#{task_run.event.repo.name}:#{task_run.event.head_sha}", child_job.program_path,
         into: Tisktask.TaskLogs.stream_to(child_job)
       )
 
