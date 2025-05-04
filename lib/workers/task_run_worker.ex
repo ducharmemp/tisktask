@@ -53,12 +53,12 @@ defmodule Workers.TaskRunWorker do
   end
 
   defp run_child_job(child_job, task_run) do
-    SourceControl.create_commit_status!(
-      task_run.event,
-      task_run.event.type,
-      child_job.program_path,
-      "pending"
-    )
+    # SourceControl.create_commit_status!(
+    #   task_run.event,
+    #   task_run.event.type,
+    #   child_job.program_path,
+    #   "pending"
+    # )
 
     {_, exit_status} =
       Tisktask.Podman.run_job(
@@ -69,11 +69,11 @@ defmodule Workers.TaskRunWorker do
 
     Tasks.update_job!(child_job, %{exit_status: exit_status})
 
-    SourceControl.create_commit_status!(
-      task_run.event,
-      task_run.event.type,
-      child_job.program_path,
-      "success"
-    )
+    # SourceControl.create_commit_status!(
+    #   task_run.event,
+    #   task_run.event.type,
+    #   child_job.program_path,
+    #   "success"
+    # )
   end
 end

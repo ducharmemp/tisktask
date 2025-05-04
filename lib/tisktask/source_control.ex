@@ -3,24 +3,7 @@ defmodule Tisktask.SourceControl do
   import Ecto.Query, warn: false
 
   alias Tisktask.Repo
-  alias Tisktask.SourceControl.Event
   alias Tisktask.SourceControl.Repository
-
-  def list_source_control_events do
-    Repo.all(Event)
-  end
-
-  def get_event!(id), do: Repo.get!(Event, id)
-
-  def create_event(attrs \\ %{}) do
-    %Event{}
-    |> Event.changeset(attrs)
-    |> Repo.insert()
-  end
-
-  def delete_event(%Event{} = event) do
-    Repo.delete(event)
-  end
 
   def list_repositories do
     Repo.all(Repository)
@@ -52,23 +35,17 @@ defmodule Tisktask.SourceControl do
     Repository.changeset(repository, attrs)
   end
 
-  def create_commit_status!(%Event{} = event, context, name, state) do
-    event.repo
-    |> Repository.status_uri(event.head_sha)
-    |> Req.post!(
-      auth: "token #{event.repo.api_token}",
-      json: %{
-        state: state,
-        description: name,
-        context: context,
-        target_url: "https://example.com"
-      }
-    )
-  end
-
-  defp owner_for(repo_url) do
-  end
-
-  defp repo_for(repo_url) do
-  end
+  # def create_commit_status!(%Event{} = event, context, name, state) do
+  #   event.repo
+  #   |> Repository.status_uri(event.head_sha)
+  #   |> Req.post!(
+  #     auth: "token #{event.repo.api_token}",
+  #     json: %{
+  #       state: state,
+  #       description: name,
+  #       context: context,
+  #       target_url: "https://example.com"
+  #     }
+  #   )
+  # end
 end
