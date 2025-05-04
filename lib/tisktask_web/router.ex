@@ -21,7 +21,7 @@ defmodule TisktaskWeb.Router do
   scope "/api", TisktaskWeb do
     pipe_through(:api)
 
-    resources("/:originator/events", SourceControl.EventController)
+    resources("/triggers/github", SourceControl.EventController)
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

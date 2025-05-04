@@ -12,11 +12,24 @@ defmodule Tisktask.SourceControl.EventBuilder do
 
     repo = SourceControl.get_repository_by_url(get_in(body, ["repository", "clone_url"]))
 
-    %Event{} |> Event.changeset(attrs) |> Event.change_repo(repo) |> Tisktask.Repo.insert()
+    %Event{}
+    |> Event.changeset(attrs)
+    |> Event.change_repo(repo)
+    |> Tisktask.Repo.insert()
+    |> dbg()
   end
 
   def extract_from_body(attrs, payload) do
-    Map.merge(%{head_ref: Map.get(payload, "ref"), head_sha: Map.get(payload, "after"), payload: payload}, attrs)
+    Map.merge(
+      %{
+        originator: "github",
+        type: "pull_request",
+        head_ref: Map.get(payload, "after"),
+        head_sha: Map.get(payload, "after"),
+        payload: payload
+      },
+      attrs
+    )
   end
 
   def extract_from_headers(attrs, headers) do
