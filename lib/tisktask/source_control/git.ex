@@ -1,6 +1,6 @@
 defmodule Tisktask.Git do
   @moduledoc false
-  def clone_into(repo, destination_path, commit, into: into) do
+  def clone_at(repo, commit, destination_path, into: into) do
     MuonTrap.cmd(
       git_exe(),
       [
@@ -19,12 +19,12 @@ defmodule Tisktask.Git do
     )
   end
 
-  def checkout(destiation_path, commit, into: into) do
+  def checkout(commit, destination_path, into: into) do
     MuonTrap.cmd(
       git_exe(),
       [
         "-C",
-        destiation_path,
+        destination_path,
         "checkout",
         commit
       ],

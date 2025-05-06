@@ -28,4 +28,8 @@ defmodule Tisktask.Tasks.Run do
   def trigger_from(run, %Triggers.Github{} = trigger) do
     put_assoc(run, :github_trigger, trigger)
   end
+
+  def trigger_for(run) do
+    run.github_trigger
+  end
 end

@@ -57,7 +57,7 @@ defmodule TisktaskWeb.RunLive.Form do
   end
 
   defp save_run(socket, :edit, run_params) do
-    case SourceControl.update_run(socket.assigns.run, run_params) do
+    case Tasks.update_run(socket.assigns.run, run_params) do
       {:ok, run} ->
         {:noreply,
          socket
@@ -70,7 +70,7 @@ defmodule TisktaskWeb.RunLive.Form do
   end
 
   defp save_run(socket, :new, run_params) do
-    case SourceControl.create_run(run_params) do
+    case Tasks.create_run(run_params) do
       {:ok, run} ->
         {:noreply,
          socket
@@ -82,5 +82,5 @@ defmodule TisktaskWeb.RunLive.Form do
     end
   end
 
-  defp return_path("index", _run), do: ~p"/task_runs"
+  defp return_path("index", _run), do: ~p"/tasks"
 end

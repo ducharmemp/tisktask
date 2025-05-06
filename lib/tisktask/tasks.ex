@@ -19,10 +19,10 @@ defmodule Tisktask.Tasks do
   end
 
   def list_task_runs do
-    Repo.all(all_task_runs_query())
+    Repo.all(all_task_runs_query()) |> Repo.preload(:github_trigger)
   end
 
-  def get_run!(id), do: Repo.get!(all_task_runs_query(), id)
+  def get_run!(id), do: Repo.get!(all_task_runs_query(), id) |> Repo.preload(:github_trigger)
 
   def preload_task_jobs(run) do
     Repo.preload(run, :jobs)

@@ -10,28 +10,33 @@ defmodule Workers.TaskRunWorker do
   alias Tisktask.TaskLogs
   alias Tisktask.Tasks
   alias Tisktask.TaskSupervisor
+  alias Tisktask.Triggers
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"task_run_id" => task_run_id}}) do
     {:ok, build_context} = Briefly.create(type: :directory)
-
-    task_run =
-      task_run_id |> Tasks.get_run!() |> Tisktask.Repo.preload(event: [:repo])
+    task_run = Tasks.get_run!(task_run_id)
+    triggering_repository = Triggers.repository_for!(task_run.github_trigger)
+    triggering_sha = Triggers.head_sha(task_run.github_trigger)
+    triggering_repository_name = Triggers.repository_name(triggering_repository)
 
     Tasks.start_run!(task_run)
 
-    clone_repo_uri = Tisktask.SourceControl.Repository.clone_uri(task_run.event.repo)
+    Triggers.clone_uri(triggering_repository)
+    |> Git.clone_at(triggering_sha, build_context, into: TaskLogs.stream_to(task_run))
 
-    Git.clone_into(clone_repo_uri, build_context, task_run.event.head_sha, into: TaskLogs.stream_to(task_run))
+    Git.checkout(triggering_sha, build_context, into: TaskLogs.stream_to(task_run))
 
-    Git.checkout(build_context, task_run.event.head_sha, into: TaskLogs.stream_to(task_run))
-    all_jobs_to_run = Filesystem.all_jobs_for(build_context, task_run.event.type)
-    build_file = Filesystem.build_file_for(build_context, task_run.event.type)
+    all_jobs_to_run =
+      Filesystem.all_jobs_for(build_context, Triggers.type(task_run.github_trigger))
+
+    build_file =
+      Filesystem.build_file_for(build_context, Triggers.type(task_run.github_trigger))
 
     Buildah.build_image(
       build_context,
       build_file,
-      "#{task_run.event.repo.name}:#{task_run.event.head_sha}",
+      "#{triggering_repository_name}:#{triggering_sha}",
       into: TaskLogs.stream_to(task_run)
     )
 
@@ -41,7 +46,7 @@ defmodule Workers.TaskRunWorker do
       Tisktask.TaskSupervisor
       |> Task.Supervisor.async_stream_nolink(
         all_jobs,
-        &run_child_job(&1, task_run),
+        &run_child_job(&1, task_run, "localhost/#{triggering_repository_name}:#{triggering_sha}"),
         ordered: true,
         timeout: :infinity
       )
@@ -52,28 +57,14 @@ defmodule Workers.TaskRunWorker do
     :ok
   end
 
-  defp run_child_job(child_job, task_run) do
-    # SourceControl.create_commit_status!(
-    #   task_run.event,
-    #   task_run.event.type,
-    #   child_job.program_path,
-    #   "pending"
-    # )
-
+  defp run_child_job(child_job, task_run, image_name) do
     {_, exit_status} =
       Tisktask.Podman.run_job(
-        "localhost/#{task_run.event.repo.name}:#{task_run.event.head_sha}",
+        image_name,
         child_job.program_path,
         into: Tisktask.TaskLogs.stream_to(child_job)
       )
 
     Tasks.update_job!(child_job, %{exit_status: exit_status})
-
-    # SourceControl.create_commit_status!(
-    #   task_run.event,
-    #   task_run.event.type,
-    #   child_job.program_path,
-    #   "success"
-    # )
   end
 end
