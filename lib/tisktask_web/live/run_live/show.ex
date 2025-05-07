@@ -12,20 +12,16 @@ defmodule TisktaskWeb.RunLive.Show do
     <Layouts.app flash={@flash}>
       <.header>
         Run {@run.id}
-        <:subtitle>This is a run record from your database.</:subtitle>
+        <:subtitle>
+          <.icon name="hero-arrow-right" />
+          <%= @run.status %>
+        </:subtitle>
         <:actions>
           <.button navigate={~p"/tasks"}>
             <.icon name="hero-arrow-left" />
           </.button>
-          <.button variant="primary" navigate={~p"/tasks/#{@run}/edit?return_to=show"}>
-            <.icon name="hero-pencil-square" /> Edit run
-          </.button>
         </:actions>
       </.header>
-
-      <.list>
-        <:item title="Status">{@run.status}</:item>
-      </.list>
 
       <div>
         <div>

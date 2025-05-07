@@ -21,7 +21,6 @@ defmodule Tisktask.Filesystem do
     |> Enum.reject(fn path ->
       (path |> Path.rootname() |> Path.basename()) in ["Containerfile", "Dockerfile"]
     end)
-    |> dbg()
   end
 
   defp safe_wildcard(directory, subdirs, pattern) when is_list(subdirs) do

@@ -4,12 +4,16 @@ defmodule TisktaskWeb.Live.RunLive.Components.RunLogsComponent do
 
   def render(assigns) do
     ~H"""
-    <div
-      class="mockup-code w-256 h-256 max-h-256 overflow-scroll"
-      id={"run-logs-#{@run.id}"}
-      phx-update="stream"
-    >
-      <pre :for={{id, line} <- @streams.logs} id={id}><code>{line.log}</code></pre>
+    <div class="collapse border bg-base-100 border-base-300 my-2">
+      <input type="checkbox" />
+      <div class="collapse-title">{@run.id}</div>
+      <div
+        class="collapse-content mockup-code w-256 max-h-256 overflow-scroll"
+        id={"run-logs-#{@run.id}"}
+        phx-update="stream"
+      >
+        <pre :for={{id, line} <- @streams.logs} id={id}><code>{line.log}</code></pre>
+      </div>
     </div>
     """
   end
