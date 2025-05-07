@@ -4,4 +4,6 @@ defmodule Tisktask.Factory do
   use Tisktask.Factories.Tasks.RunFactory
   use Tisktask.Factories.Tasks.JobFactory
   use Tisktask.Factories.Triggers.GithubFactory
+  use Tisktask.Factories.SourceControl.RepositoryFactory
+  use Tisktask.Factories.SourceControl.GithubRepositoryAttributesFactory
 end

@@ -16,8 +16,6 @@ defmodule TisktaskWeb.RunLive.Form do
 
       <.form for={@form} id="run-form" phx-change="validate" phx-submit="save">
         <.input field={@form[:name]} type="text" label="Name" />
-        <.input field={@form[:url]} type="text" label="Url" />
-        <.input field={@form[:api_token]} type="text" label="Url" />
         <footer>
           <.button phx-disable-with="Saving..." variant="primary">Save run</.button>
           <.button navigate={return_path(@return_to, @run)}>Cancel</.button>

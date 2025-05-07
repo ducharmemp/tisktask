@@ -1,7 +1,7 @@
 import Config
 
 # Only in tests, remove the complexity from the password hashing algorithm
-config :argon2_elixir, t_cost: 1, m_cost: 1
+config :argon2_elixir, t_cost: 1, m_cost: 5
 
 # Print only warnings and errors during test
 config :logger, level: :warning
@@ -40,3 +40,6 @@ config :tisktask, TisktaskWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
   secret_key_base: "3E8b40Ed5snQywMpNuJ9fDLgkyn4/KnmTB7Ahz7HifdOPEa8pMAr/457beoLpnqK",
   server: false
+
+config :tisktask,
+  github_req_options: [plug: {Req.Test, Tisktask.SourceControl}]

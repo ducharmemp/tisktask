@@ -53,7 +53,7 @@ defmodule TisktaskWeb.Router do
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
 
-      get("/", PageController, :home)
+      get("/", RunLive.Index, :index)
       live("/tasks", RunLive.Index, :index)
       live("/tasks/new", RunLive.Form, :new)
       live("/tasks/:id", RunLive.Show, :show)

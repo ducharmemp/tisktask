@@ -81,7 +81,7 @@ defmodule TisktaskWeb.RepositoryLive.Form do
   end
 
   defp save_repository(socket, :new, repository_params) do
-    case SourceControl.synchronize_from_github(
+    case SourceControl.synchronize_from_github!(
            repository_params["owner_and_repo"],
            repository_params["api_token"]
          ) do

@@ -6,28 +6,6 @@ defmodule Tisktask.SourceControl do
   alias Tisktask.SourceControl.Repository
   alias Tisktask.SourceControl.GithubRepositoryAttributes
 
-  def synchronize_from_github(owner_and_repo, api_token) do
-    response =
-      Req.get!("https://api.github.com/repos/#{owner_and_repo}", auth: {:bearer, api_token}).body
-
-    name = Map.get(response, "name")
-    clone_url = Map.get(response, "clone_url")
-    github_repository_id = Map.get(response, "id")
-
-    with {:ok, repository} <-
-           create_repository(%{name: name, url: clone_url, api_token: api_token}),
-         {:ok, _} <-
-           create_github_attributes(
-             %{
-               raw_attributes: response,
-               github_repository_id: github_repository_id
-             },
-             repository
-           ) do
-      {:ok, repository}
-    end
-  end
-
   def list_repositories do
     Repo.all(Repository)
   end
@@ -63,5 +41,42 @@ defmodule Tisktask.SourceControl do
 
   def change_repository(%Repository{} = repository, attrs \\ %{}) do
     Repository.changeset(repository, attrs)
+  end
+
+  def synchronize_from_github!(owner_and_repo, api_token) do
+    [owner, repo] = String.split(owner_and_repo, "/")
+    response = execute_github_request!(owner, repo, api_token)
+    name = Map.get(response, "name")
+    clone_url = Map.get(response, "clone_url")
+    github_repository_id = Map.get(response, "id")
+
+    with {:ok, repository} <-
+           create_repository(%{name: name, url: clone_url, api_token: api_token}),
+         {:ok, _} <-
+           create_github_attributes(
+             %{
+               raw_attributes: response,
+               github_repository_id: github_repository_id
+             },
+             repository
+           ) do
+      {:ok, repository}
+    end
+  end
+
+  defp execute_github_request!(owner, repo, api_token) do
+    response =
+      [
+        base_url: "https://api.github.com/repos/:owner/:repo",
+        path_params: [
+          owner: owner,
+          repo: repo
+        ],
+        auth: {:bearer, api_token}
+      ]
+      |> Keyword.merge(Application.get_env(:tisktask, :github_req_options, []))
+      |> Req.request!()
+
+    response.body
   end
 end
