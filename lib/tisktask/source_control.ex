@@ -64,18 +64,4 @@ defmodule Tisktask.SourceControl do
   def change_repository(%Repository{} = repository, attrs \\ %{}) do
     Repository.changeset(repository, attrs)
   end
-
-  # def create_commit_status!(%Event{} = event, context, name, state) do
-  #   event.repo
-  #   |> Repository.status_uri(event.head_sha)
-  #   |> Req.post!(
-  #     auth: "token #{event.repo.api_token}",
-  #     json: %{
-  #       state: state,
-  #       description: name,
-  #       context: context,
-  #       target_url: "https://example.com"
-  #     }
-  #   )
-  # end
 end

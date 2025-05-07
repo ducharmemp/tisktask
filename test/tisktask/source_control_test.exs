@@ -3,67 +3,6 @@ defmodule Tisktask.SourceControlTest do
 
   alias Tisktask.SourceControl
 
-  describe "source_control_events" do
-    alias Tisktask.SourceControl.Event
-
-    @invalid_attrs %{type: nil, payload: nil, originator: nil}
-
-    test "list_source_control_events/0 returns all source_control_events" do
-      event = insert(:source_control_event)
-      assert SourceControl.list_source_control_events() == [event]
-    end
-
-    test "get_event!/1 returns the event with given id" do
-      event = insert(:source_control_event)
-      assert SourceControl.get_event!(event.id) == event
-    end
-
-    test "create_event/1 with valid data creates a event" do
-      valid_attrs = %{type: "some type", payload: %{}, originator: "some originator"}
-
-      assert {:ok, %Event{} = event} = SourceControl.create_event(valid_attrs)
-      assert event.type == "some type"
-      assert event.payload == %{}
-      assert event.originator == "some originator"
-    end
-
-    test "create_event/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = SourceControl.create_event(@invalid_attrs)
-    end
-
-    test "update_event/2 with valid data updates the event" do
-      event = insert(:source_control_event)
-
-      update_attrs = %{
-        type: "some updated type",
-        payload: %{},
-        originator: "some updated originator"
-      }
-
-      assert {:ok, %Event{} = event} = SourceControl.update_event(event, update_attrs)
-      assert event.type == "some updated type"
-      assert event.payload == %{}
-      assert event.originator == "some updated originator"
-    end
-
-    test "update_event/2 with invalid data returns error changeset" do
-      event = insert(:source_control_event)
-      assert {:error, %Ecto.Changeset{}} = SourceControl.update_event(event, @invalid_attrs)
-      assert event == SourceControl.get_event!(event.id)
-    end
-
-    test "delete_event/1 deletes the event" do
-      event = insert(:source_control_event)
-      assert {:ok, %Event{}} = SourceControl.delete_event(event)
-      assert_raise Ecto.NoResultsError, fn -> SourceControl.get_event!(event.id) end
-    end
-
-    test "change_event/1 returns a event changeset" do
-      event = insert(:source_control_event)
-      assert %Ecto.Changeset{} = SourceControl.change_event(event)
-    end
-  end
-
   describe "source_control_repositories" do
     alias Tisktask.SourceControl.Repository
 

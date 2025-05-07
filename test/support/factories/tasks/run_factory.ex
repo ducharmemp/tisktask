@@ -6,7 +6,7 @@ defmodule Tisktask.Factories.Tasks.RunFactory do
       def task_run_factory do
         %Tisktask.Tasks.Run{
           status: :staged,
-          event: build(:source_control_event),
+          github_trigger: build(:github_trigger),
           log_file: "some log file",
           jobs: []
         }
