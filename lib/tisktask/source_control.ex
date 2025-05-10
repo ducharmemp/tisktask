@@ -3,24 +3,8 @@ defmodule Tisktask.SourceControl do
   import Ecto.Query, warn: false
 
   alias Tisktask.Repo
-  alias Tisktask.SourceControl.Event
   alias Tisktask.SourceControl.Repository
-
-  def list_source_control_events do
-    Repo.all(Event)
-  end
-
-  def get_event!(id), do: Repo.get!(Event, id)
-
-  def create_event(attrs \\ %{}) do
-    %Event{}
-    |> Event.changeset(attrs)
-    |> Repo.insert()
-  end
-
-  def delete_event(%Event{} = event) do
-    Repo.delete(event)
-  end
+  alias Tisktask.SourceControl.GithubRepositoryAttributes
 
   def list_repositories do
     Repo.all(Repository)
@@ -38,6 +22,13 @@ defmodule Tisktask.SourceControl do
     |> Repo.insert()
   end
 
+  def create_github_attributes(attrs \\ %{}, source_control_repository) do
+    %GithubRepositoryAttributes{}
+    |> GithubRepositoryAttributes.changeset(attrs)
+    |> Ecto.Changeset.put_assoc(:source_control_repository, source_control_repository)
+    |> Repo.insert()
+  end
+
   def update_repository(%Repository{} = repository, attrs) do
     repository
     |> Repository.changeset(attrs)
@@ -52,23 +43,40 @@ defmodule Tisktask.SourceControl do
     Repository.changeset(repository, attrs)
   end
 
-  def create_commit_status!(%Event{} = event, context, name, state) do
-    event.repo
-    |> Repository.status_uri(event.head_sha)
-    |> Req.post!(
-      auth: "token #{event.repo.api_token}",
-      json: %{
-        state: state,
-        description: name,
-        context: context,
-        target_url: "https://example.com"
-      }
-    )
+  def synchronize_from_github!(owner_and_repo, api_token) do
+    [owner, repo] = String.split(owner_and_repo, "/")
+    response = execute_github_request!(owner, repo, api_token)
+    name = Map.get(response, "name")
+    clone_url = Map.get(response, "clone_url")
+    github_repository_id = Map.get(response, "id")
+
+    with {:ok, repository} <-
+           create_repository(%{name: name, url: clone_url, api_token: api_token}),
+         {:ok, _} <-
+           create_github_attributes(
+             %{
+               raw_attributes: response,
+               github_repository_id: github_repository_id
+             },
+             repository
+           ) do
+      {:ok, repository}
+    end
   end
 
-  defp owner_for(repo_url) do
-  end
+  defp execute_github_request!(owner, repo, api_token) do
+    response =
+      [
+        base_url: "https://api.github.com/repos/:owner/:repo",
+        path_params: [
+          owner: owner,
+          repo: repo
+        ],
+        auth: {:bearer, api_token}
+      ]
+      |> Keyword.merge(Application.get_env(:tisktask, :github_req_options, []))
+      |> Req.request!()
 
-  defp repo_for(repo_url) do
+    response.body
   end
 end

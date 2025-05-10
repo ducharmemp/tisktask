@@ -16,8 +16,6 @@ defmodule TisktaskWeb.RunLive.Form do
 
       <.form for={@form} id="run-form" phx-change="validate" phx-submit="save">
         <.input field={@form[:name]} type="text" label="Name" />
-        <.input field={@form[:url]} type="text" label="Url" />
-        <.input field={@form[:api_token]} type="text" label="Url" />
         <footer>
           <.button phx-disable-with="Saving..." variant="primary">Save run</.button>
           <.button navigate={return_path(@return_to, @run)}>Cancel</.button>
@@ -57,7 +55,7 @@ defmodule TisktaskWeb.RunLive.Form do
   end
 
   defp save_run(socket, :edit, run_params) do
-    case SourceControl.update_run(socket.assigns.run, run_params) do
+    case Tasks.update_run(socket.assigns.run, run_params) do
       {:ok, run} ->
         {:noreply,
          socket
@@ -70,7 +68,7 @@ defmodule TisktaskWeb.RunLive.Form do
   end
 
   defp save_run(socket, :new, run_params) do
-    case SourceControl.create_run(run_params) do
+    case Tasks.create_run(run_params) do
       {:ok, run} ->
         {:noreply,
          socket
@@ -82,5 +80,5 @@ defmodule TisktaskWeb.RunLive.Form do
     end
   end
 
-  defp return_path("index", _run), do: ~p"/task_runs"
+  defp return_path("index", _run), do: ~p"/tasks"
 end

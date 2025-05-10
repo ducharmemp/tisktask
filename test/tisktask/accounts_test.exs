@@ -1,5 +1,5 @@
 defmodule Tisktask.AccountsTest do
-  use Tisktask.DataCase
+  use Tisktask.DataCase, async: true
 
   import Tisktask.AccountsFixtures
 

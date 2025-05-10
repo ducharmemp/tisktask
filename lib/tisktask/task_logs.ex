@@ -1,8 +1,8 @@
 defmodule Tisktask.TaskLogs do
   @moduledoc false
   use Agent
-  use Bitwise
 
+  import Bitwise
   import Ecto.Query, warn: false
 
   alias Phoenix.PubSub

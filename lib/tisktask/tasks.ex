@@ -18,32 +18,26 @@ defmodule Tisktask.Tasks do
     Phoenix.PubSub.subscribe(Tisktask.PubSub, "task_run#{run.id}")
   end
 
-  def stage_task_run(event) do
-    {:ok, run} = create_run(%{status: "staged"}, event)
-    %{task_run_id: run.id} |> Workers.TaskRunWorker.new() |> Oban.insert!()
-    Phoenix.PubSub.broadcast(Tisktask.PubSub, "task_run", {:task_run_created, run})
-
-    {:ok, run}
-  end
-
   def list_task_runs do
-    Repo.all(all_task_runs_query())
+    Repo.all(all_task_runs_query()) |> Repo.preload(:github_trigger)
   end
 
-  def get_run!(id), do: Repo.get!(all_task_runs_query(), id)
+  def get_run!(id), do: Repo.get!(all_task_runs_query(), id) |> Repo.preload(:github_trigger)
 
   def preload_task_jobs(run) do
     Repo.preload(run, :jobs)
   end
 
-  def create_run(attrs \\ %{}, %Event{} = event) do
+  def create_run(trigger) do
     log_file_path = Tisktask.TaskLogs.ensure_log_file!()
+    attrs = %{log_file: log_file_path, status: :staged}
 
     %Run{}
-    |> Run.changeset(Map.put_new(attrs, :log_file, log_file_path))
-    |> Ecto.Changeset.put_assoc(:event, event)
+    |> Run.changeset(attrs)
+    |> Run.trigger_from(trigger)
     |> Repo.insert()
     |> tap(fn {:ok, run} ->
+      %{task_run_id: run.id} |> Workers.TaskRunWorker.new() |> Oban.insert!()
       Phoenix.PubSub.broadcast(Tisktask.PubSub, "task_run", {:task_run_created, run})
     end)
   end

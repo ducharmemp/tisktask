@@ -1,5 +1,5 @@
 defmodule Tisktask.TasksTest do
-  use Tisktask.DataCase
+  use Tisktask.DataCase, async: true
 
   alias Tisktask.Tasks
 
@@ -19,14 +19,10 @@ defmodule Tisktask.TasksTest do
     end
 
     test "create_run/1 with valid data creates a run" do
-      valid_attrs = %{status: :staged}
+      trigger = insert(:github_trigger)
 
-      assert {:ok, %Run{} = run} = Tasks.create_run(valid_attrs)
+      assert {:ok, %Run{} = run} = Tasks.create_run(trigger)
       assert run.status == :staged
-    end
-
-    test "create_run/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = Tasks.create_run(@invalid_attrs)
     end
 
     test "update_run/2 with valid data updates the run" do

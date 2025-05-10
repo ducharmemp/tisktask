@@ -5,7 +5,7 @@ defmodule Tisktask.Tasks.LogFile do
   def new(loggable) do
     %__MODULE__{
       loggable: loggable,
-      file_stream: File.stream!(loggable.log_file, mode: [:append])
+      file_stream: File.stream!(loggable.log_file, [:append, {:delayed_write, 100, 20}])
     }
   end
 end

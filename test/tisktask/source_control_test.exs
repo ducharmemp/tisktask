@@ -1,68 +1,7 @@
 defmodule Tisktask.SourceControlTest do
-  use Tisktask.DataCase
+  use Tisktask.DataCase, async: true
 
   alias Tisktask.SourceControl
-
-  describe "source_control_events" do
-    alias Tisktask.SourceControl.Event
-
-    @invalid_attrs %{type: nil, payload: nil, originator: nil}
-
-    test "list_source_control_events/0 returns all source_control_events" do
-      event = insert(:source_control_event)
-      assert SourceControl.list_source_control_events() == [event]
-    end
-
-    test "get_event!/1 returns the event with given id" do
-      event = insert(:source_control_event)
-      assert SourceControl.get_event!(event.id) == event
-    end
-
-    test "create_event/1 with valid data creates a event" do
-      valid_attrs = %{type: "some type", payload: %{}, originator: "some originator"}
-
-      assert {:ok, %Event{} = event} = SourceControl.create_event(valid_attrs)
-      assert event.type == "some type"
-      assert event.payload == %{}
-      assert event.originator == "some originator"
-    end
-
-    test "create_event/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = SourceControl.create_event(@invalid_attrs)
-    end
-
-    test "update_event/2 with valid data updates the event" do
-      event = insert(:source_control_event)
-
-      update_attrs = %{
-        type: "some updated type",
-        payload: %{},
-        originator: "some updated originator"
-      }
-
-      assert {:ok, %Event{} = event} = SourceControl.update_event(event, update_attrs)
-      assert event.type == "some updated type"
-      assert event.payload == %{}
-      assert event.originator == "some updated originator"
-    end
-
-    test "update_event/2 with invalid data returns error changeset" do
-      event = insert(:source_control_event)
-      assert {:error, %Ecto.Changeset{}} = SourceControl.update_event(event, @invalid_attrs)
-      assert event == SourceControl.get_event!(event.id)
-    end
-
-    test "delete_event/1 deletes the event" do
-      event = insert(:source_control_event)
-      assert {:ok, %Event{}} = SourceControl.delete_event(event)
-      assert_raise Ecto.NoResultsError, fn -> SourceControl.get_event!(event.id) end
-    end
-
-    test "change_event/1 returns a event changeset" do
-      event = insert(:source_control_event)
-      assert %Ecto.Changeset{} = SourceControl.change_event(event)
-    end
-  end
 
   describe "source_control_repositories" do
     alias Tisktask.SourceControl.Repository
@@ -71,57 +10,75 @@ defmodule Tisktask.SourceControlTest do
 
     test "list_source_control_repositories/0 returns all source_control_repositories" do
       repositories = insert(:source_control_repository)
-      assert SourceControl.list_source_control_repositories() == [repositories]
+      assert SourceControl.list_repositories() == [repositories]
     end
 
-    test "get_repositories!/1 returns the repositories with given id" do
+    test "get_repository!/1 returns the repositories with given id" do
       repositories = insert(:source_control_repository)
-      assert SourceControl.get_repositories!(repositories.id) == repositories
+      assert SourceControl.get_repository!(repositories.id) == repositories
     end
 
-    test "create_repositories/1 with valid data creates a repositories" do
-      valid_attrs = %{name: "some name", url: "some url"}
+    test "create_repository/1 with valid data creates a repositories" do
+      valid_attrs = %{name: "some name", url: "some url", api_token: "some token"}
 
-      assert {:ok, %Repository{} = repositories} =
-               SourceControl.create_repositories(valid_attrs)
+      assert {:ok, %Repository{} = repository} =
+               SourceControl.create_repository(valid_attrs)
 
-      assert repositories.name == "some name"
-      assert repositories.url == "some url"
+      assert repository.name == "some name"
+      assert repository.url == "some url"
     end
 
-    test "create_repositories/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = SourceControl.create_repositories(@invalid_attrs)
+    test "create_repository/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = SourceControl.create_repository(@invalid_attrs)
     end
 
-    test "update_repositories/2 with valid data updates the repositories" do
+    test "update_repository/2 with valid data updates the repositories" do
       repositories = insert(:source_control_repository)
       update_attrs = %{name: "some updated name", url: "some updated url"}
 
       assert {:ok, %Repository{} = repositories} =
-               SourceControl.update_repositories(repositories, update_attrs)
+               SourceControl.update_repository(repositories, update_attrs)
 
       assert repositories.name == "some updated name"
       assert repositories.url == "some updated url"
     end
 
-    test "update_repositories/2 with invalid data returns error changeset" do
+    test "update_repository/2 with invalid data returns error changeset" do
       repositories = insert(:source_control_repository)
 
       assert {:error, %Ecto.Changeset{}} =
-               SourceControl.update_repositories(repositories, @invalid_attrs)
+               SourceControl.update_repository(repositories, @invalid_attrs)
 
-      assert repositories == SourceControl.get_repositories!(repositories.id)
+      assert repositories == SourceControl.get_repository!(repositories.id)
     end
 
-    test "delete_repositories/1 deletes the repositories" do
+    test "delete_repository/1 deletes the repositories" do
       repositories = insert(:source_control_repository)
-      assert {:ok, %Repository{}} = SourceControl.delete_repositories(repositories)
-      assert_raise Ecto.NoResultsError, fn -> SourceControl.get_repositories!(repositories.id) end
+      assert {:ok, %Repository{}} = SourceControl.delete_repository(repositories)
+      assert_raise Ecto.NoResultsError, fn -> SourceControl.get_repository!(repositories.id) end
     end
 
-    test "change_repositories/1 returns a repositories changeset" do
+    test "change_repository/1 returns a repositories changeset" do
       repositories = insert(:source_control_repository)
-      assert %Ecto.Changeset{} = SourceControl.change_repositories(repositories)
+      assert %Ecto.Changeset{} = SourceControl.change_repository(repositories)
+    end
+  end
+
+  describe "synchronize_from_github!/2" do
+    test "it creates a repository with matching github attributes" do
+      Req.Test.stub(SourceControl, fn conn ->
+        Req.Test.json(conn, %{
+          "id" => 123,
+          "name" => "some name",
+          "clone_url" => "some url",
+          "owner" => %{"login" => "some owner"}
+        })
+      end)
+
+      {:ok, repository} =
+        SourceControl.synchronize_from_github!("some_owner/some_repo", "some_token")
+
+      assert %SourceControl.Repository{} = repository
     end
   end
 end

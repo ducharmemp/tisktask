@@ -2,10 +2,9 @@ defmodule Tisktask.Filesystem do
   @moduledoc false
   def build_file_for(directory, event) do
     event_specific_build_files =
-      Path.wildcard(Path.join([directory, ".tisktask", event, "{Dockerfile,Containerfile}*"]))
+      safe_wildcard(directory, [event], "{Dockerfile,Containerfile}*")
 
-    generic_build_files =
-      Path.wildcard(Path.join([directory, ".tisktask", "{Dockerfile,Containerfile}*"]))
+    generic_build_files = safe_wildcard(directory, [], "{Dockerfile,Containerfile}*")
 
     build_files =
       if event_specific_build_files == [] do
@@ -14,18 +13,23 @@ defmodule Tisktask.Filesystem do
         event_specific_build_files
       end
 
-    build_files |> Enum.sort() |> List.first() |> Path.relative_to(directory)
+    build_files |> Enum.sort() |> List.first()
   end
 
   def all_jobs_for(directory, event) do
-    [directory, ".tisktask", event, "*"]
-    |> Path.join()
-    |> Path.wildcard()
+    safe_wildcard(directory, [event], "*")
     |> Enum.reject(fn path ->
       (path |> Path.rootname() |> Path.basename()) in ["Containerfile", "Dockerfile"]
     end)
-    |> Enum.map(fn path ->
-      Path.relative_to(path, directory)
-    end)
+  end
+
+  defp safe_wildcard(directory, subdirs, pattern) when is_list(subdirs) do
+    with path <- Path.join([".tisktask"] ++ subdirs),
+         {:ok, sanitized_path} <- Path.safe_relative(path, directory) do
+      Path.wildcard(Path.join(sanitized_path, pattern))
+    else
+      _ ->
+        []
+    end
   end
 end

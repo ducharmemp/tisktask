@@ -6,10 +6,13 @@ defmodule Tisktask.Factories.Tasks.RunFactory do
       def task_run_factory do
         %Tisktask.Tasks.Run{
           status: :staged,
-          event: build(:source_control_event),
-          log_file: "some log file",
-          jobs: []
+          github_trigger: build(:github_trigger),
+          log_file: "some log file"
         }
+      end
+
+      def with_jobs(%Tisktask.Tasks.Run{} = run, count) do
+        insert_list(:task_job, count, task_run_id: run.id)
       end
     end
   end
