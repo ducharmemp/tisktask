@@ -14,21 +14,7 @@ defmodule Tisktask.TaskLogs do
   end
 
   defp new_log_file do
-    # 48 bits
-    now = System.os_time(:millisecond)
-
-    node_name_hash =
-      Node.self()
-      |> Atom.to_charlist()
-      |> Enum.reduce(0, fn char, hash ->
-        (hash <<< 5) - hash + char &&& 0xFFFF
-      end)
-
-    # 32 bits
-    # 16 bits
-    n = Agent.get_and_update(__MODULE__, fn n -> {n, n + 1 &&& 0xFF} end)
-    log_id = Base.url_encode64(<<now::48, node_name_hash::16, n::8>>, padding: false)
-    Path.join(["data", "logs", "#{log_id}.log"])
+    Path.join(["data", "logs", "#{UUID.uuid4(:hex)}.log"])
   end
 
   def subscribe_to(%Run{} = run) do
@@ -50,7 +36,11 @@ defmodule Tisktask.TaskLogs do
   def stream_from!(loggable) do
     loggable.log_file
     |> File.stream!(mode: [:read])
-    |> Stream.with_index()
-    |> Stream.map(fn {log, index} -> %{id: index, log: log} end)
+    |> Stream.map(fn line -> line |> String.trim() |> String.split(" ", parts: 2) end)
+    |> Stream.filter(fn
+      [_, _] -> true
+      [_] -> false
+    end)
+    |> Stream.map(fn [index, log] -> %{id: index, log: log} end)
   end
 end

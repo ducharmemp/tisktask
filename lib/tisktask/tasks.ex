@@ -14,15 +14,19 @@ defmodule Tisktask.Tasks do
     Phoenix.PubSub.subscribe(Tisktask.PubSub, "task_run")
   end
 
-  def subscribe_to(run) do
+  def subscribe_to(%Run{} = run) do
     Phoenix.PubSub.subscribe(Tisktask.PubSub, "task_run#{run.id}")
   end
 
-  def list_task_runs do
-    Repo.all(all_task_runs_query()) |> Repo.preload(:github_trigger)
+  def subscribe_to(%Job{} = job) do
+    Phoenix.PubSub.subscribe(Tisktask.PubSub, "task_job#{job.id}")
   end
 
-  def get_run!(id), do: Repo.get!(all_task_runs_query(), id) |> Repo.preload(:github_trigger)
+  def list_task_runs do
+    all_task_runs_query() |> Repo.all() |> Repo.preload(:github_trigger)
+  end
+
+  def get_run!(id), do: all_task_runs_query() |> Repo.get!(id) |> Repo.preload(:github_trigger)
 
   def preload_task_jobs(run) do
     Repo.preload(run, :jobs)
@@ -48,9 +52,17 @@ defmodule Tisktask.Tasks do
     |> Repo.update()
     |> case do
       {:ok, run} ->
+        run = get_run!(run.id)
+
         Phoenix.PubSub.broadcast(
           Tisktask.PubSub,
           "task_run",
+          {:task_run_updated, get_run!(run.id)}
+        )
+
+        Phoenix.PubSub.broadcast(
+          Tisktask.PubSub,
+          "task_run#{run.id}",
           {:task_run_updated, get_run!(run.id)}
         )
 
@@ -76,6 +88,7 @@ defmodule Tisktask.Tasks do
     |> Repo.update!()
     |> tap(fn job ->
       Phoenix.PubSub.broadcast(Tisktask.PubSub, "task_job", {:task_job_updated, job})
+      Phoenix.PubSub.broadcast(Tisktask.PubSub, "task_job#{job.id}", {:task_job_updated, job})
     end)
   end
 

@@ -1,7 +1,7 @@
 defmodule Tisktask.Podman do
   @moduledoc false
-  def run_job(image, hook_path, into: into) do
-    MuonTrap.cmd(podman_exe(), ["run", "--rm", image, hook_path],
+  def run_job(image, hook_path, env_file, into: into) do
+    MuonTrap.cmd(podman_exe(), ["run", "--rm", "--env-file", env_file, image, hook_path],
       stderr_to_stdout: true,
       into: into
     )

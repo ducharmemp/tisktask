@@ -62,12 +62,12 @@ defmodule TisktaskWeb.RunLive.Index do
     {:ok,
      socket
      |> assign(:page_title, "Listing Task runs")
-     |> stream(:tasks, Tasks.list_task_runs())}
+     |> stream(:tasks, Tasks.list_task_runs(), limit: 25)}
   end
 
   @impl true
   def handle_info({:task_run_created, task_run}, socket) do
-    {:noreply, stream_insert(socket, :tasks, task_run, at: 0)}
+    {:noreply, stream_insert(socket, :tasks, task_run, at: 0, limit: 25)}
   end
 
   @impl true
