@@ -58,12 +58,26 @@ defmodule Workers.TaskRunWorker do
   end
 
   defp run_child_job(child_job, task_run, image_name) do
+    Triggers.update_remote_status(
+      task_run.github_trigger,
+      child_job.program_path,
+      "pending"
+    )
+
     {_, exit_status} =
       Tisktask.Podman.run_job(
         image_name,
         child_job.program_path,
         into: Tisktask.TaskLogs.stream_to(child_job)
       )
+
+    status = if exit_status == 0, do: "success", else: "failure"
+
+    Triggers.update_remote_status(
+      task_run.github_trigger,
+      child_job.program_path,
+      status
+    )
 
     Tasks.update_job!(child_job, %{exit_status: exit_status})
   end

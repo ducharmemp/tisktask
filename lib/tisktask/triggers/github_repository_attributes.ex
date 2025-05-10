@@ -4,6 +4,7 @@ defmodule Tisktask.Triggers.GithubRepositoryAttributes do
 
   schema "github_repository_attributes" do
     field :github_repository_id, :integer
+    field :raw_attributes, :map
 
     timestamps(type: :utc_datetime)
   end

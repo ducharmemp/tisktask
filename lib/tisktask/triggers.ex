@@ -37,4 +37,28 @@ defmodule Tisktask.Triggers do
   def type(%Github{} = trigger) do
     Path.join(trigger.type, trigger.action)
   end
+
+  def update_remote_status(%Github{} = trigger, name, status) do
+    repository = repository_for!(trigger) |> Repo.preload(:github_repository_attributes) |> dbg()
+
+    response =
+      [
+        method: :post,
+        base_url: Map.get(repository.github_repository_attributes.raw_attributes, "statuses_url"),
+        path_params: [
+          sha: head_sha(trigger)
+        ],
+        path_params_style: :curly,
+        auth: {:bearer, repository.api_token},
+        json: %{
+          state: status,
+          target_url: "https://example.com/build/status",
+          description: "Test description",
+          context: name
+        }
+      ]
+      |> Keyword.merge(Application.get_env(:tisktask, :github_req_options, []))
+      |> Req.request!()
+      |> dbg()
+  end
 end
