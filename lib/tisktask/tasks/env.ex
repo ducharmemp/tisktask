@@ -9,6 +9,8 @@ defmodule Tisktask.Tasks.Env do
   end
 
   def write_env_to(env_file, %{} = env) do
+    {:ok, env_file} = Path.safe_relative(env_file)
+
     env
     |> Enum.map(&Tuple.to_list/1)
     |> Enum.map(fn [key, value] ->

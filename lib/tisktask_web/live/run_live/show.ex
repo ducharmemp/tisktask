@@ -55,11 +55,12 @@ defmodule TisktaskWeb.RunLive.Show do
   def mount(%{"id" => id}, _session, socket) do
     task_run = id |> Tasks.get_run!() |> Tasks.preload_task_jobs()
     Tisktask.Tasks.subscribe_to(task_run)
-    Tisktask.TaskLogs.subscribe_to(task_run)
+    Tisktask.TaskLogs.subscribe_to(task_run, "log")
 
     for job <- task_run.jobs do
       Tisktask.TaskLogs.subscribe_to(job)
       Tisktask.Tasks.subscribe_to(job)
+      Tisktask.TaskLogs.subscribe_to(job, "log")
     end
 
     {:ok,
@@ -70,7 +71,7 @@ defmodule TisktaskWeb.RunLive.Show do
   end
 
   @impl true
-  def handle_info({:task_run_updated, %Run{id: id} = run}, socket) do
+  def handle_info({"task_runs:updated:" <> id, %Run{id: id} = run}, socket) do
     send_update(
       RunLogsComponent,
       id: log_id_for(run),
@@ -81,15 +82,16 @@ defmodule TisktaskWeb.RunLive.Show do
   end
 
   @impl true
-  def handle_info({:task_job_created, job}, socket) do
+  def handle_info({"task_jobs:created:" <> _id, id}, socket) do
+    job = Tasks.get_job!(id)
     Tisktask.Tasks.subscribe_to(job)
-    Tisktask.TaskLogs.subscribe_to(job)
+    Tisktask.TaskLogs.subscribe_to(job, "log")
 
     {:noreply, stream_insert(socket, :task_jobs, job)}
   end
 
   @impl true
-  def handle_info({:task_job_updated, %Job{id: id} = job, log}, socket) do
+  def handle_info({"task_jobs:updated:" <> _id, %Job{id: id} = job}, socket) do
     send_update(
       JobLogsComponent,
       id: log_id_for(job),
@@ -100,7 +102,7 @@ defmodule TisktaskWeb.RunLive.Show do
   end
 
   @impl true
-  def handle_info({:log, %Run{id: id} = run, log}, socket) do
+  def handle_info({"task_runs:log:" <> _id, %Run{id: id} = run, log}, socket) do
     send_update(
       RunLogsComponent,
       id: log_id_for(run),
@@ -112,7 +114,7 @@ defmodule TisktaskWeb.RunLive.Show do
   end
 
   @impl true
-  def handle_info({:log, %Job{id: id} = job, log}, socket) do
+  def handle_info({"task_jobs:log:" <> _id, %Job{id: id} = job, log}, socket) do
     send_update(
       JobLogsComponent,
       id: log_id_for(job),

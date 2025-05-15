@@ -25,8 +25,8 @@ defmodule Workers.TaskRunWorker do
     # TODO: link this into the run?
     env_file = Tasks.Env.ensure_env_file!()
 
-    task_run.github_trigger
-    |> Triggers.env_for()
+    triggering_repository
+    |> Triggers.env_for(task_run.github_trigger)
     |> then(fn mapped -> Tasks.Env.write_env_to(env_file, mapped) end)
 
     triggering_repository
