@@ -57,7 +57,7 @@ defmodule TisktaskWeb.RunLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    Tasks.subscribe_all()
+    Tasks.subscribe_to(Tisktask.Tasks.Run)
 
     {:ok,
      socket

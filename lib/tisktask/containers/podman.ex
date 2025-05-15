@@ -1,10 +1,14 @@
 defmodule Tisktask.Podman do
   @moduledoc false
   def run_job(image, hook_path, env_file, into: into) do
-    MuonTrap.cmd(podman_exe(), ["run", "--rm", "--env-file", env_file, image, hook_path],
-      stderr_to_stdout: true,
-      into: into
-    )
+    [podman_exe(), "run", "--rm", "--env-file", env_file, image, hook_path]
+    |> Exile.stream(stderr: :consume, ignore_epipe: true)
+    |> Stream.map(fn {_, line} -> line end)
+    |> Stream.each(fn
+      {:status, _} -> nil
+      line -> into.(line)
+    end)
+    |> Enum.at(-1)
   end
 
   defp podman_exe do

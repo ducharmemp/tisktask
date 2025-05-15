@@ -48,7 +48,8 @@ defmodule Workers.TaskRunWorker do
       into: TaskLogs.stream_to(task_run)
     )
 
-    all_jobs = Enum.map(all_jobs_to_run, &Tasks.create_job!(task_run, %{program_path: &1}))
+    all_jobs =
+      all_jobs_to_run |> Enum.map(&Tasks.create_job!(task_run, %{program_path: &1})) |> dbg()
 
     all_job_results =
       Tisktask.TaskSupervisor
