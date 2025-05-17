@@ -2,4 +2,5 @@
 
 set -eou pipefail
 
+echo $CI
 mix test

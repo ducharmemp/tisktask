@@ -20,6 +20,5 @@ defmodule Tisktask.Triggers.GithubRepository do
     |> Map.put(:scheme, "https")
     |> Map.put(:userinfo, "x-access-token:#{repository.api_token}")
     |> URI.to_string()
-    |> dbg()
   end
 end

@@ -15,7 +15,12 @@ defmodule TisktaskWeb.RepositoryLive.Form do
       </.header>
 
       <.form for={@form} id="repository-form" phx-change="validate" phx-submit="save">
-        <.input field={@form[:owner_and_repo]} type="text" label="Owner and Repo" placeholder="owner/repo" />
+        <.input
+          field={@form[:owner_and_repo]}
+          type="text"
+          label="Owner and Repo"
+          placeholder="owner/repo"
+        />
         <.input field={@form[:api_token]} type="text" label="API Token" />
         <footer>
           <.button phx-disable-with="Saving..." variant="primary">Save Repository</.button>

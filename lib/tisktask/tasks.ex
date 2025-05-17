@@ -3,6 +3,8 @@ defmodule Tisktask.Tasks do
   The Tasks context.
   """
 
+  use Tisktask.PubSub
+
   import Ecto.Query, warn: false
 
   alias Tisktask.Repo
@@ -10,19 +12,11 @@ defmodule Tisktask.Tasks do
   alias Tisktask.Tasks.Job
   alias Tisktask.Tasks.Run
 
-  def subscribe_all do
-    Phoenix.PubSub.subscribe(Tisktask.PubSub, "task_run")
-  end
-
-  def subscribe_to(run) do
-    Phoenix.PubSub.subscribe(Tisktask.PubSub, "task_run#{run.id}")
-  end
-
   def list_task_runs do
-    Repo.all(all_task_runs_query()) |> Repo.preload(:github_trigger)
+    all_task_runs_query() |> Repo.all() |> Repo.preload(:github_trigger)
   end
 
-  def get_run!(id), do: Repo.get!(all_task_runs_query(), id) |> Repo.preload(:github_trigger)
+  def get_run!(id), do: all_task_runs_query() |> Repo.get!(id) |> Repo.preload(:github_trigger)
 
   def preload_task_jobs(run) do
     Repo.preload(run, :jobs)
@@ -36,9 +30,9 @@ defmodule Tisktask.Tasks do
     |> Run.changeset(attrs)
     |> Run.trigger_from(trigger)
     |> Repo.insert()
+    |> publish("created")
     |> tap(fn {:ok, run} ->
       %{task_run_id: run.id} |> Workers.TaskRunWorker.new() |> Oban.insert!()
-      Phoenix.PubSub.broadcast(Tisktask.PubSub, "task_run", {:task_run_created, run})
     end)
   end
 
@@ -46,37 +40,21 @@ defmodule Tisktask.Tasks do
     run
     |> Run.changeset(attrs)
     |> Repo.update()
-    |> case do
-      {:ok, run} ->
-        Phoenix.PubSub.broadcast(
-          Tisktask.PubSub,
-          "task_run",
-          {:task_run_updated, get_run!(run.id)}
-        )
-
-        {:ok, run}
-
-      error ->
-        error
-    end
+    |> publish("updated")
   end
 
   def update_run!(%Run{} = run, attrs) do
     run
     |> Run.changeset(attrs)
     |> Repo.update!()
-    |> tap(fn run ->
-      Phoenix.PubSub.broadcast(Tisktask.PubSub, "task_run", {:task_run_updated, get_run!(run.id)})
-    end)
+    |> publish("updated")
   end
 
   def update_job!(%Job{} = job, attrs) do
     job
     |> Job.changeset(attrs)
     |> Repo.update!()
-    |> tap(fn job ->
-      Phoenix.PubSub.broadcast(Tisktask.PubSub, "task_job", {:task_job_updated, job})
-    end)
+    |> publish("updated")
   end
 
   def change_run(%Run{} = run, attrs \\ %{}) do
@@ -94,21 +72,11 @@ defmodule Tisktask.Tasks do
   def create_job!(%Run{} = run, attrs \\ %{}) do
     log_file_path = Tisktask.TaskLogs.ensure_log_file!()
 
-    child_job =
-      %Job{}
-      |> Job.changeset(Map.put_new(attrs, :log_file, log_file_path))
-      |> Ecto.Changeset.put_assoc(:parent_run, run)
-      |> Repo.insert!()
-
-    Phoenix.PubSub.broadcast(Tisktask.PubSub, "task_job", {:task_job_created, child_job})
-
-    Phoenix.PubSub.broadcast(
-      Tisktask.PubSub,
-      "task_run#{run.id}",
-      {:task_job_created, child_job}
-    )
-
-    child_job
+    %Job{}
+    |> Job.changeset(Map.put_new(attrs, :log_file, log_file_path))
+    |> Ecto.Changeset.put_assoc(:parent_run, run)
+    |> Repo.insert!()
+    |> publish("created")
   end
 
   defp all_task_runs_query do

@@ -21,7 +21,7 @@ defimpl Collectable, for: Tisktask.Tasks.LogFile do
     collector_fn = fn
       :ok, {:cont, log} ->
         log = to_identifiable_log(log)
-        publish(loggable, log)
+        Tisktask.TaskLogs.publish(loggable, log)
         log = to_serializable_log(log)
         into.(:ok, {:cont, log})
         :ok
@@ -40,13 +40,5 @@ defimpl Collectable, for: Tisktask.Tasks.LogFile do
   def to_serializable_log(log) do
     id = DateTime.to_iso8601(log.id)
     "#{id} #{log.log}"
-  end
-
-  defp publish(%Run{} = loggable, log) do
-    PubSub.broadcast(Tisktask.PubSub, "run_log:#{loggable.id}", {:log, loggable, log})
-  end
-
-  defp publish(%Job{} = loggable, log) do
-    PubSub.broadcast(Tisktask.PubSub, "job_log:#{loggable.id}", {:log, loggable, log})
   end
 end
