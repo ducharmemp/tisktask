@@ -3,8 +3,8 @@ defmodule Tisktask.SourceControl do
   import Ecto.Query, warn: false
 
   alias Tisktask.Repo
-  alias Tisktask.SourceControl.Repository
   alias Tisktask.SourceControl.GithubRepositoryAttributes
+  alias Tisktask.SourceControl.Repository
 
   def list_repositories do
     Repo.all(Repository)

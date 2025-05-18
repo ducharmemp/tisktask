@@ -17,17 +17,20 @@ defmodule Tisktask.Filesystem do
   end
 
   def all_jobs_for(directory, event) do
-    safe_wildcard(directory, [event], "*")
+    directory
+    |> safe_wildcard([event], "*")
     |> Enum.reject(fn path ->
       (path |> Path.rootname() |> Path.basename()) in ["Containerfile", "Dockerfile"]
     end)
   end
 
   defp safe_wildcard(directory, subdirs, pattern) when is_list(subdirs) do
-    with path <- Path.join([".tisktask"] ++ subdirs),
-         {:ok, sanitized_path} <- Path.safe_relative(path, directory) do
-      Path.wildcard(Path.join(sanitized_path, pattern))
-    else
+    path = Path.join([".tisktask"] ++ subdirs)
+
+    case Path.safe_relative(path, directory) do
+      {:ok, sanitized_path} ->
+        Path.wildcard(Path.join(sanitized_path, pattern))
+
       _ ->
         []
     end

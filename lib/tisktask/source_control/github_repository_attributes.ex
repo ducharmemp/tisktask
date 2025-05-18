@@ -7,8 +7,7 @@ defmodule Tisktask.SourceControl.GithubRepositoryAttributes do
   schema "github_repository_attributes" do
     field :github_repository_id, :integer
 
-    belongs_to :source_control_repository, Tisktask.SourceControl.Repository,
-      foreign_key: :source_control_repository_id
+    belongs_to :source_control_repository, Tisktask.SourceControl.Repository, foreign_key: :source_control_repository_id
 
     field :raw_attributes, :map
 

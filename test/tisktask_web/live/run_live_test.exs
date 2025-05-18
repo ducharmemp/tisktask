@@ -18,7 +18,7 @@ defmodule TisktaskWeb.RunLiveTest do
       {:ok, _index_live, html} = live(conn, ~p"/tasks")
 
       assert html =~ "Listing Task runs"
-      assert html =~ run.status |> to_string()
+      assert html =~ to_string(run.status)
     end
 
     @tag :skip

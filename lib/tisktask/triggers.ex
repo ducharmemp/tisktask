@@ -22,6 +22,16 @@ defmodule Tisktask.Triggers do
     )
   end
 
+  def env_for(%GithubRepository{} = repository, %Github{} = trigger) do
+    %{
+      CI: "true",
+      TISKTASK_GITHUB_EVENT: trigger.type,
+      TISKTASK_GITHUB_ACTION: trigger.action,
+      TISKTASK_GITHUB_SHA: head_sha(trigger),
+      TISKTASK_GITHUB_REPOSITORY: repository.name,
+    }
+  end
+
   def clone_uri(%GithubRepository{} = repo) do
     GithubRepository.clone_uri(repo)
   end
@@ -39,7 +49,7 @@ defmodule Tisktask.Triggers do
   end
 
   def update_remote_status(%Github{} = trigger, name, status) do
-    repository = repository_for!(trigger) |> Repo.preload(:github_repository_attributes) |> dbg()
+    repository = trigger |> repository_for!() |> Repo.preload(:github_repository_attributes)
 
     response =
       [
@@ -59,6 +69,5 @@ defmodule Tisktask.Triggers do
       ]
       |> Keyword.merge(Application.get_env(:tisktask, :github_req_options, []))
       |> Req.request!()
-      |> dbg()
   end
 end

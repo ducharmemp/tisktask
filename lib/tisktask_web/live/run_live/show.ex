@@ -5,6 +5,8 @@ defmodule TisktaskWeb.RunLive.Show do
   alias Tisktask.Tasks
   alias Tisktask.Tasks.Job
   alias Tisktask.Tasks.Run
+  alias TisktaskWeb.Live.RunLive.Components.JobLogsComponent
+  alias TisktaskWeb.Live.RunLive.Components.RunLogsComponent
 
   @impl true
   def render(assigns) do
@@ -14,7 +16,7 @@ defmodule TisktaskWeb.RunLive.Show do
         Run {@run.id}
         <:subtitle>
           <.icon name="hero-arrow-right" />
-          <%= @run.status %>
+          {@run.status}
         </:subtitle>
         <:actions>
           <.button navigate={~p"/tasks"}>
@@ -28,18 +30,21 @@ defmodule TisktaskWeb.RunLive.Show do
           <h4 class="text-lg font-semibold pb-2">Setup Logs</h4>
           <.live_component
             module={TisktaskWeb.Live.RunLive.Components.RunLogsComponent}
-            id="run_log_lines"
+            id={log_id_for(@run)}
             run={@run}
           />
         </div>
         <div>
           <h4 class="text-lg font-semibold py-2">Job Logs</h4>
-          <.live_component
-            :for={job <- @task_jobs}
-            module={TisktaskWeb.Live.RunLive.Components.JobLogsComponent}
-            id={"task-job-#{job.id}"}
-            job={job}
-          />
+          <div id="job-logs" phx-update="stream">
+            <span :for={{id, job} <- @streams.task_jobs} id={id}>
+              <.live_component
+                module={TisktaskWeb.Live.RunLive.Components.JobLogsComponent}
+                id={log_id_for(job)}
+                job={job}
+              />
+            </span>
+          </div>
         </div>
       </div>
     </Layouts.app>
@@ -50,28 +55,57 @@ defmodule TisktaskWeb.RunLive.Show do
   def mount(%{"id" => id}, _session, socket) do
     task_run = id |> Tasks.get_run!() |> Tasks.preload_task_jobs()
     Tisktask.Tasks.subscribe_to(task_run)
-    Tisktask.TaskLogs.subscribe_to(task_run)
-    for job <- task_run.jobs, do: Tisktask.TaskLogs.subscribe_to(job)
+    Tisktask.TaskLogs.subscribe_to(task_run, "log")
+
+    for job <- task_run.jobs do
+      Tisktask.TaskLogs.subscribe_to(job)
+      Tisktask.Tasks.subscribe_to(job)
+      Tisktask.TaskLogs.subscribe_to(job, "log")
+    end
 
     {:ok,
      socket
      |> assign(:page_title, "Show Run")
      |> assign(:run, task_run)
-     |> assign(:task_jobs, task_run.jobs)}
+     |> stream(:task_jobs, task_run.jobs)}
   end
 
   @impl true
-  def handle_info({:task_job_created, job}, socket) do
-    Tisktask.TaskLogs.subscribe_to(job)
-
-    {:noreply, assign(socket, :task_jobs, [socket.assigns.task_jobs | job])}
-  end
-
-  @impl true
-  def handle_info({:log, %Run{id: id} = run, log}, socket) do
+  def handle_info({"task_runs:updated:" <> id, %Run{id: id} = run}, socket) do
     send_update(
-      TisktaskWeb.Live.RunLive.Components.RunLogsComponent,
-      id: "run_log_lines",
+      RunLogsComponent,
+      id: log_id_for(run),
+      run: run
+    )
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({"task_jobs:created:" <> _id, id}, socket) do
+    job = Tasks.get_job!(id)
+    Tisktask.Tasks.subscribe_to(job)
+    Tisktask.TaskLogs.subscribe_to(job, "log")
+
+    {:noreply, stream_insert(socket, :task_jobs, job)}
+  end
+
+  @impl true
+  def handle_info({"task_jobs:updated:" <> _id, %Job{id: id} = job}, socket) do
+    send_update(
+      JobLogsComponent,
+      id: log_id_for(job),
+      job: job
+    )
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({"task_runs:log:" <> _id, %Run{id: id} = run, log}, socket) do
+    send_update(
+      RunLogsComponent,
+      id: log_id_for(run),
       run: run,
       log: log
     )
@@ -80,14 +114,22 @@ defmodule TisktaskWeb.RunLive.Show do
   end
 
   @impl true
-  def handle_info({:log, %Job{id: id} = job, log}, socket) do
+  def handle_info({"task_jobs:log:" <> _id, %Job{id: id} = job, log}, socket) do
     send_update(
-      TisktaskWeb.Live.RunLive.Components.JobLogsComponent,
-      id: "task-job-#{id}",
+      JobLogsComponent,
+      id: log_id_for(job),
       job: job,
       log: log
     )
 
     {:noreply, socket}
+  end
+
+  defp log_id_for(%Job{} = job) do
+    "task_job_#{job.id}"
+  end
+
+  defp log_id_for(%Run{} = run) do
+    "task_run_#{run.id}"
   end
 end

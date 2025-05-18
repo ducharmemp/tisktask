@@ -57,21 +57,23 @@ defmodule TisktaskWeb.RunLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    Tasks.subscribe_all()
+    Tasks.subscribe_to(Tisktask.Tasks.Run)
 
     {:ok,
      socket
      |> assign(:page_title, "Listing Task runs")
-     |> stream(:tasks, Tasks.list_task_runs())}
+     |> stream(:tasks, Tasks.list_task_runs(), limit: 25)}
   end
 
   @impl true
-  def handle_info({:task_run_created, task_run}, socket) do
-    {:noreply, stream_insert(socket, :tasks, task_run, at: 0)}
+  def handle_info({"task_runs:created", task_run_id}, socket) do
+    task_run = Tasks.get_run!(task_run_id)
+    {:noreply, stream_insert(socket, :tasks, task_run, at: 0, limit: 25)}
   end
 
   @impl true
-  def handle_info({:task_run_updated, task_run}, socket) do
+  def handle_info({"task_runs:updated", task_run_id}, socket) do
+    task_run = Tasks.get_run!(task_run_id)
     {:noreply, stream_insert(socket, :tasks, task_run)}
   end
 end

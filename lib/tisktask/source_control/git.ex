@@ -1,36 +1,42 @@
 defmodule Tisktask.Git do
   @moduledoc false
   def clone_at(repo, commit, destination_path, into: into) do
-    MuonTrap.cmd(
+    [
       git_exe(),
-      [
-        "clone",
-        "-c",
-        "remote.origin.fetch=+#{commit}:refs/remotes/origin/#{commit}",
-        "--no-checkout",
-        "--progress",
-        "--depth",
-        "1",
-        repo,
-        destination_path
-      ],
-      into: into,
-      stderr_to_stdout: true
-    )
+      "clone",
+      "-c",
+      "remote.origin.fetch=+#{commit}:refs/remotes/origin/#{commit}",
+      "--no-checkout",
+      "--progress",
+      "--depth",
+      "1",
+      repo,
+      destination_path
+    ]
+    |> Exile.stream(stderr: :consume)
+    |> Stream.map(fn {_, line} -> line end)
+    |> Stream.each(fn
+      {:status, _} -> nil
+      line -> into.(line)
+    end)
+    |> Enum.at(-1)
   end
 
   def checkout(commit, destination_path, into: into) do
-    MuonTrap.cmd(
+    [
       git_exe(),
-      [
-        "-C",
-        destination_path,
-        "checkout",
-        commit
-      ],
-      into: into,
-      stderr_to_stdout: true
-    )
+      "-C",
+      destination_path,
+      "checkout",
+      commit
+    ]
+    |> Exile.stream(stderr: :consume)
+    |> Stream.map(fn {_, line} -> line end)
+    |> Stream.each(fn
+      {:status, _} -> nil
+      line -> into.(line)
+    end)
+    |> Enum.at(-1)
   end
 
   defp git_exe do

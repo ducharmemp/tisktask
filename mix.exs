@@ -47,12 +47,7 @@ defmodule Tisktask.MixProject do
       {:esbuild, "~> 0.9", runtime: Mix.env() == :dev},
       {:tailwind, "~> 0.3", runtime: Mix.env() == :dev},
       {:heroicons,
-       github: "tailwindlabs/heroicons",
-       tag: "v2.1.1",
-       sparse: "optimized",
-       app: false,
-       compile: false,
-       depth: 1},
+       github: "tailwindlabs/heroicons", tag: "v2.1.1", sparse: "optimized", app: false, compile: false, depth: 1},
       {:swoosh, "~> 1.16"},
       {:req, "~> 0.5"},
       {:telemetry_metrics, "~> 1.0"},
@@ -64,13 +59,16 @@ defmodule Tisktask.MixProject do
       {:oban, "~> 2.19"},
       {:oban_web, "~> 2.11"},
       {:igniter, "~> 0.5", only: [:dev]},
-      {:muontrap, "~> 1.6"},
+      {:exile, "~> 0.12.0"},
       {:briefly, "~> 0.5"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:styler, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_machina, "~> 2.8", only: :test},
       {:faker, "~> 0.18", only: :test},
-      {:toml, "~> 0.7"}
+      {:uuid, "~> 1.1"},
+      {:toml, "~> 0.7"},
+      {:csv, "~> 3.2"},
+      {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false}
     ]
   end
 

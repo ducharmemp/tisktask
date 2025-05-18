@@ -22,7 +22,15 @@ defmodule Workers.TaskRunWorker do
 
     Tasks.start_run!(task_run)
 
-    Triggers.clone_uri(triggering_repository)
+    # TODO: link this into the run?
+    env_file = Tasks.Env.ensure_env_file!()
+
+    triggering_repository
+    |> Triggers.env_for(task_run.github_trigger)
+    |> then(fn mapped -> Tasks.Env.write_env_to(env_file, mapped) end)
+
+    triggering_repository
+    |> Triggers.clone_uri()
     |> Git.clone_at(triggering_sha, build_context, into: TaskLogs.stream_to(task_run))
 
     Git.checkout(triggering_sha, build_context, into: TaskLogs.stream_to(task_run))
@@ -46,7 +54,12 @@ defmodule Workers.TaskRunWorker do
       Tisktask.TaskSupervisor
       |> Task.Supervisor.async_stream_nolink(
         all_jobs,
-        &run_child_job(&1, task_run, "localhost/#{triggering_repository_name}:#{triggering_sha}"),
+        &run_child_job(
+          &1,
+          task_run,
+          "localhost/#{triggering_repository_name}:#{triggering_sha}",
+          env_file
+        ),
         ordered: true,
         timeout: :infinity
       )
@@ -57,7 +70,7 @@ defmodule Workers.TaskRunWorker do
     :ok
   end
 
-  defp run_child_job(child_job, task_run, image_name) do
+  defp run_child_job(child_job, task_run, image_name, env_file) do
     Triggers.update_remote_status(
       task_run.github_trigger,
       child_job.program_path,
@@ -68,6 +81,7 @@ defmodule Workers.TaskRunWorker do
       Tisktask.Podman.run_job(
         image_name,
         child_job.program_path,
+        env_file,
         into: Tisktask.TaskLogs.stream_to(child_job)
       )
 

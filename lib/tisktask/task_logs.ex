@@ -1,11 +1,11 @@
 defmodule Tisktask.TaskLogs do
   @moduledoc false
   use Agent
+  use Tisktask.PubSub
 
   import Bitwise
   import Ecto.Query, warn: false
 
-  alias Phoenix.PubSub
   alias Tisktask.Tasks.Job
   alias Tisktask.Tasks.Run
 
@@ -14,29 +14,7 @@ defmodule Tisktask.TaskLogs do
   end
 
   defp new_log_file do
-    # 48 bits
-    now = System.os_time(:millisecond)
-
-    node_name_hash =
-      Node.self()
-      |> Atom.to_charlist()
-      |> Enum.reduce(0, fn char, hash ->
-        (hash <<< 5) - hash + char &&& 0xFFFF
-      end)
-
-    # 32 bits
-    # 16 bits
-    n = Agent.get_and_update(__MODULE__, fn n -> {n, n + 1 &&& 0xFF} end)
-    log_id = Base.url_encode64(<<now::48, node_name_hash::16, n::8>>, padding: false)
-    Path.join(["data", "logs", "#{log_id}.log"])
-  end
-
-  def subscribe_to(%Run{} = run) do
-    PubSub.subscribe(Tisktask.PubSub, "run_log:#{run.id}")
-  end
-
-  def subscribe_to(%Job{} = job) do
-    PubSub.subscribe(Tisktask.PubSub, "job_log:#{job.id}")
+    Path.join(["data", "logs", "#{UUID.uuid4(:hex)}.log"])
   end
 
   def ensure_log_file! do
@@ -44,13 +22,26 @@ defmodule Tisktask.TaskLogs do
   end
 
   def stream_to(loggable) do
-    Tisktask.Tasks.LogFile.new(loggable)
+    {:ok, log_file} = Path.safe_relative(loggable.log_file)
+    file = File.open!(log_file, [:binary, :append, {:delayed_write, 100, 20}])
+
+    fn line ->
+      line = %{id: DateTime.utc_now(:microsecond, Calendar.ISO), log: line}
+      publish(loggable, line, "log")
+      IO.binwrite(file, "#{DateTime.to_iso8601(line.id)} #{line.log}")
+    end
   end
 
   def stream_from!(loggable) do
-    loggable.log_file
+    {:ok, log_file} = Path.safe_relative(loggable.log_file)
+
+    log_file
     |> File.stream!(mode: [:read])
-    |> Stream.with_index()
-    |> Stream.map(fn {log, index} -> %{id: index, log: log} end)
+    |> Stream.map(fn line -> line |> String.trim() |> String.split(" ", parts: 2) end)
+    |> Stream.filter(fn
+      [_, _] -> true
+      [_] -> false
+    end)
+    |> Stream.map(fn [index, log] -> %{id: index, log: log} end)
   end
 end
