@@ -16,7 +16,6 @@ defmodule Tisktask.Application do
       {Oban, Application.fetch_env!(:tisktask, Oban)},
       {Phoenix.PubSub, name: Tisktask.PubSub},
       {Task.Supervisor, name: Tisktask.TaskSupervisor},
-      Tisktask.TaskLogs,
       # Start a worker by calling: Tisktask.Worker.start_link(arg)
       # {Tisktask.Worker, arg},
       # Start to serve requests, typically the last entry

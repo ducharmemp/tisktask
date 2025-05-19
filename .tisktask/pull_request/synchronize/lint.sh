@@ -2,4 +2,6 @@
 
 set -eou pipefail
 
+mix format
 mix credo
+mix sobelow

@@ -79,6 +79,12 @@ defmodule Tisktask.Tasks do
     |> publish("created")
   end
 
+  def env_for(%Run{} = run) do
+    %{
+      TISKTASK_RUN_ID: run.id
+    }
+  end
+
   defp all_task_runs_query do
     from r in Run,
       left_join: j in subquery(failed_jobs_per_run_query()),

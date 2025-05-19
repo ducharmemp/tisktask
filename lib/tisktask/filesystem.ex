@@ -1,19 +1,17 @@
 defmodule Tisktask.Filesystem do
   @moduledoc false
   def build_file_for(directory, event) do
-    event_specific_build_files =
-      safe_wildcard(directory, [event], "{Dockerfile,Containerfile}*")
-
-    generic_build_files = safe_wildcard(directory, [], "{Dockerfile,Containerfile}*")
-
     build_files =
-      if event_specific_build_files == [] do
-        generic_build_files
-      else
-        event_specific_build_files
-      end
+      event
+      |> parents_of()
+      |> Enum.reduce([], fn parent, acc ->
+        case safe_wildcard(directory, [parent], "{Dockerfile,Containerfile}*") do
+          [] -> acc
+          files -> acc ++ files
+        end
+      end)
 
-    build_files |> Enum.sort() |> List.first()
+    hd(build_files)
   end
 
   def all_jobs_for(directory, event) do
@@ -22,6 +20,20 @@ defmodule Tisktask.Filesystem do
     |> Enum.reject(fn path ->
       (path |> Path.rootname() |> Path.basename()) in ["Containerfile", "Dockerfile"]
     end)
+  end
+
+  defp parents_of(path) do
+    path
+    |> Path.split()
+    |> Enum.reduce(
+      [],
+      fn segment, acc ->
+        case acc do
+          [] -> [segment]
+          _ -> [acc |> Enum.at(-1) |> Path.join(segment) | acc]
+        end
+      end
+    )
   end
 
   defp safe_wildcard(directory, subdirs, pattern) when is_list(subdirs) do

@@ -67,8 +67,10 @@ defmodule Tisktask.MixProject do
       {:faker, "~> 0.18", only: :test},
       {:uuid, "~> 1.1"},
       {:toml, "~> 0.7"},
-      {:csv, "~> 3.2"},
-      {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false}
+      {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
+      {:thousand_island, "~> 1.3"},
+      {:redix, "~> 1.1"},
+      {:mimic, "~> 1.11", only: :test}
     ]
   end
 

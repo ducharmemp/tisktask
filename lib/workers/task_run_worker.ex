@@ -2,10 +2,11 @@ defmodule Workers.TaskRunWorker do
   @moduledoc false
   use Oban.Worker, queue: :default, max_attempts: 1
 
-  alias Tisktask.Buildah
+  alias Tisktask.Commands
+  alias Tisktask.Containers.Buildah
+  alias Tisktask.Containers.Podman
   alias Tisktask.Filesystem
   alias Tisktask.Git
-  alias Tisktask.Podman
   alias Tisktask.SourceControl
   alias Tisktask.TaskLogs
   alias Tisktask.Tasks
@@ -22,11 +23,11 @@ defmodule Workers.TaskRunWorker do
 
     Tasks.start_run!(task_run)
 
-    # TODO: link this into the run?
     env_file = Tasks.Env.ensure_env_file!()
 
-    triggering_repository
-    |> Triggers.env_for(task_run.github_trigger)
+    task_run
+    |> Tasks.env_for()
+    |> Map.merge(Triggers.env_for(task_run.github_trigger))
     |> then(fn mapped -> Tasks.Env.write_env_to(env_file, mapped) end)
 
     triggering_repository
@@ -77,11 +78,14 @@ defmodule Workers.TaskRunWorker do
       "pending"
     )
 
+    command_socket = Commands.spawn_command_listeners()
+
     {_, exit_status} =
       Tisktask.Podman.run_job(
         image_name,
         child_job.program_path,
         env_file,
+        command_socket,
         into: Tisktask.TaskLogs.stream_to(child_job)
       )
 
