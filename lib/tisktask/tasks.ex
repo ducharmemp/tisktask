@@ -17,6 +17,7 @@ defmodule Tisktask.Tasks do
   end
 
   def get_run!(id), do: all_task_runs_query() |> Repo.get!(id) |> Repo.preload(:github_trigger)
+  def get_job!(id), do: Repo.get!(Job, id)
 
   def preload_task_jobs(run) do
     Repo.preload(run, :jobs)
@@ -34,6 +35,11 @@ defmodule Tisktask.Tasks do
     |> tap(fn {:ok, run} ->
       %{task_run_id: run.id} |> Workers.TaskRunWorker.new() |> Oban.insert!()
     end)
+  end
+
+  def create_run!(trigger) do
+    {:ok, run} = create_run(trigger)
+    run
   end
 
   def update_run(%Run{} = run, attrs) do
@@ -76,6 +82,11 @@ defmodule Tisktask.Tasks do
     |> Job.changeset(Map.put_new(attrs, :log_file, log_file_path))
     |> Ecto.Changeset.put_assoc(:parent_run, run)
     |> Repo.insert!()
+    |> tap(fn job ->
+      %{task_job_id: job.id, task_run_id: job.parent_run.id}
+      |> Workers.TaskJobWorker.new()
+      |> Oban.insert!()
+    end)
     |> publish("created")
   end
 
