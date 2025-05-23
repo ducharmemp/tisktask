@@ -22,13 +22,15 @@ defmodule Tisktask.Triggers do
     )
   end
 
-  def env_for(%GithubRepository{} = repository, %Github{} = trigger) do
+  def env_for(%Github{} = trigger) do
+    repository = repository_for!(trigger)
+
     %{
       CI: "true",
       TISKTASK_GITHUB_EVENT: trigger.type,
       TISKTASK_GITHUB_ACTION: trigger.action,
       TISKTASK_GITHUB_SHA: head_sha(trigger),
-      TISKTASK_GITHUB_REPOSITORY: repository.name,
+      TISKTASK_GITHUB_REPOSITORY: repository.name
     }
   end
 

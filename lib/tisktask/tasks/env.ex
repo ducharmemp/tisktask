@@ -1,7 +1,7 @@
 defmodule Tisktask.Tasks.Env do
   @moduledoc false
   defp new_env_file do
-    Path.join(["data", "env", "#{UUID.uuid4(:hex)}.env"])
+    Path.expand(Path.join(["data", "env", "#{UUID.uuid4(:hex)}.env"]))
   end
 
   def ensure_env_file! do
@@ -9,15 +9,20 @@ defmodule Tisktask.Tasks.Env do
   end
 
   def write_env_to(env_file, %{} = env) do
-    {:ok, env_file} = Path.safe_relative(env_file)
-
     env
     |> Enum.map(&Tuple.to_list/1)
     |> Enum.map(fn [key, value] ->
-      [key, String.replace(value, "\n", "\\n")]
+      [key, encode(value)]
     end)
-    |> CSV.encode(separator: ?=, delimiter: "\n")
-    |> Stream.into(File.stream!(env_file, [:write, :utf8]))
+    |> Enum.into(File.stream!(env_file, [:write, :utf8]), fn [key, value] ->
+      "#{key}=\"#{value}\"\n"
+    end)
     |> Stream.run()
+  end
+
+  def encode(value) do
+    value
+    |> String.replace("\"", "\\\"", global: true)
+    |> String.replace("\\", "\\\\", global: true)
   end
 end

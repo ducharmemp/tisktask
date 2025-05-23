@@ -1,6 +1,5 @@
 defmodule Tisktask.TaskLogs do
   @moduledoc false
-  use Agent
   use Tisktask.PubSub
 
   import Bitwise
@@ -8,10 +7,6 @@ defmodule Tisktask.TaskLogs do
 
   alias Tisktask.Tasks.Job
   alias Tisktask.Tasks.Run
-
-  def start_link(_initial_state) do
-    Agent.start_link(fn -> 0 end, name: __MODULE__)
-  end
 
   defp new_log_file do
     Path.join(["data", "logs", "#{UUID.uuid4(:hex)}.log"])
