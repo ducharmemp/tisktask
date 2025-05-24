@@ -1,4 +1,4 @@
-defmodule Tisktask.Buildah do
+defmodule Tisktask.Containers.Buildah do
   @moduledoc false
   def build_image(build_context, build_file, tag, into: into) do
     [

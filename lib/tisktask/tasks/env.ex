@@ -22,7 +22,8 @@ defmodule Tisktask.Tasks.Env do
 
   def encode(value) do
     value
-    |> String.replace("\"", "\\\"", global: true)
-    |> String.replace("\\", "\\\\", global: true)
+    |> to_string()
+    |> String.replace("\"", "\\\"")
+    |> String.replace("\\", "\\\\")
   end
 end
