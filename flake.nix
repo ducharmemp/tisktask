@@ -10,7 +10,7 @@
         pkgs = import nixpkgs {
           inherit system overlays;
         };
-        basePackages = with pkgs; [beam.packages.erlang_27.elixir_1_17 beam.packages.erlang_27.erlang podman-compose watchman buildah postgresql];
+        basePackages = with pkgs; [beam.packages.erlang_27.elixir_1_17 beam.packages.erlang_27.erlang podman-compose watchman buildah postgresql jekyll];
         buildPackages = with pkgs; lib.optionals stdenv.hostPlatform.isLinux [inotify-tools virtiofsd] ++ lib.optionals stdenv.hostPlatform.isDarwin (with darwin.apple_sdk.frameworks; [CoreFoundation CoreServices]) ++ basePackages ++ [git docker-compose lexical tailwindcss esbuild];
         hooks = ''
           mkdir -p .nix-mix .nix-hex

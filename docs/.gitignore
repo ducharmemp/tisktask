@@ -1,0 +1,7 @@
+_site
+.nix-mix
+.nix-hex
+.sass-cache
+.jekyll-cache
+.jekyll-metadata
+vendor
