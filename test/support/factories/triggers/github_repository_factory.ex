@@ -1,4 +1,4 @@
-defmodule Tisktask.Factories.Triggers.GithubFactory do
+defmodule Tisktask.Factories.Triggers.GithubRepositoryFactory do
   @moduledoc false
   defmacro __using__(_opts) do
     quote do

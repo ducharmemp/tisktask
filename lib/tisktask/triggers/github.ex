@@ -4,6 +4,8 @@ defmodule Tisktask.Triggers.Github do
 
   import Ecto.Changeset
 
+  alias Tisktask.Triggers.GithubRepository
+
   schema "github_triggers" do
     field :type, :string
     field :action, :string
@@ -17,6 +19,10 @@ defmodule Tisktask.Triggers.Github do
     github_trigger
     |> cast(attrs, [:type, :action, :payload])
     |> validate_required([:type, :payload])
+  end
+
+  def assoc_repository(%__MODULE__{} = trigger, %GithubRepository{} = repository) do
+    put_assoc(trigger, :source_control_repository, repository)
   end
 
   def attrs_from_event(headers, payload) do

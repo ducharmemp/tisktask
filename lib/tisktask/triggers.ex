@@ -8,13 +8,28 @@ defmodule Tisktask.Triggers do
   alias Tisktask.Triggers.GithubRepositoryAttributes
 
   def create_github_trigger(attrs \\ %{}) do
-    %Github{}
-    |> Github.changeset(attrs)
-    |> Repo.insert()
+    with {:ok, trigger} <- Github.changeset(%Github{}, attrs),
+         repository = repository_for(trigger),
+         {:ok, _} <- trigger |> Github.assoc_repository(repository) |> Repo.insert() do
+      {:ok, trigger}
+    end
+  end
+
+  def repository_for(%Github{github_repository_id: nil} = trigger) do
+    Repo.get(GithubRepository, trigger.source_control_repository_id)
   end
 
   def repository_for!(%Github{github_repository_id: nil} = trigger) do
     Repo.get!(GithubRepository, trigger.source_control_repository_id)
+  end
+
+  def repository_for(%Github{github_repository_id: github_repository_id} = trigger) do
+    Repo.one(
+      from r in GithubRepository,
+        join: a in GithubRepositoryAttributes,
+        where: a.github_repository_id == ^github_repository_id,
+        select: r
+    )
   end
 
   def repository_for!(%Github{github_repository_id: github_repository_id} = trigger) do

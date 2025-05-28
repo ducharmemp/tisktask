@@ -1,6 +1,6 @@
 defmodule Workers.TaskRunWorkerTest do
-  use Mimic
   use Tisktask.DataCase, async: true
+  use Mimic
 
   alias Tisktask.SourceControl.Git
 
