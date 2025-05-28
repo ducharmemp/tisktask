@@ -42,4 +42,11 @@ config :tisktask, TisktaskWeb.Endpoint,
   server: false
 
 config :tisktask,
-  github_req_options: [plug: {Req.Test, Tisktask.SourceControl}]
+  github_req_options: [
+    plug: {Req.Test, Tisktask.SourceControl}
+  ]
+
+config :tisktask,
+  trigger_remote_status_options: [
+    plug: {Req.Test, Tisktask.Triggers}
+  ]

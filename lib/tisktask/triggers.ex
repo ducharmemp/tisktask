@@ -88,7 +88,7 @@ defmodule Tisktask.Triggers do
           context: name
         }
       ]
-      |> Keyword.merge(Application.get_env(:tisktask, :github_req_options, []))
+      |> Keyword.merge(Application.get_env(:tisktask, :trigger_remote_status_options, []))
       |> Req.request!()
   end
 end
