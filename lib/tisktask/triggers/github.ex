@@ -8,13 +8,14 @@ defmodule Tisktask.Triggers.Github do
     field :type, :string
     field :action, :string
     field :payload, :map
-    field :github_repository_id, :integer
+    field :github_repository_id, :integer, virtual: true
+    belongs_to :source_control_repository, GithubRepository
     timestamps()
   end
 
   def changeset(github_trigger, attrs) do
     github_trigger
-    |> cast(attrs, [:type, :action, :payload, :github_repository_id])
+    |> cast(attrs, [:type, :action, :payload])
     |> validate_required([:type, :payload])
   end
 

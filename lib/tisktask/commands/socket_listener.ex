@@ -4,7 +4,6 @@ defmodule Tisktask.Commands.SocketListener do
 
   alias Tisktask.Commands.ExecJob
   alias Tisktask.Commands.SpawnJob
-  alias Tisktask.Commands.SpawnRun
   alias Tisktask.Tasks.Job
   alias Tisktask.Tasks.Run
 
@@ -12,8 +11,7 @@ defmodule Tisktask.Commands.SocketListener do
   @socket_path "data/socket"
   @commands %{
     SpawnJob.name() => SpawnJob,
-    ExecJob.name() => ExecJob,
-    SpawnRun.name() => SpawnRun
+    ExecJob.name() => ExecJob
   }
 
   @doc false

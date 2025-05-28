@@ -13,11 +13,15 @@ defmodule Tisktask.Triggers do
     |> Repo.insert()
   end
 
-  def repository_for!(%Github{} = trigger) do
+  def repository_for!(%Github{github_repository_id: nil} = trigger) do
+    Repo.get!(GithubRepository, trigger.source_control_repository_id)
+  end
+
+  def repository_for!(%Github{github_repository_id: github_repository_id} = trigger) do
     Repo.one!(
       from r in GithubRepository,
         join: a in GithubRepositoryAttributes,
-        where: a.github_repository_id == ^trigger.github_repository_id,
+        where: a.github_repository_id == ^github_repository_id,
         select: r
     )
   end

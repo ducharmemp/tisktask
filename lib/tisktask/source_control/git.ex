@@ -1,4 +1,4 @@
-defmodule Tisktask.Git do
+defmodule Tisktask.SourceControl.Git do
   @moduledoc false
   def clone_at(repo, commit, destination_path, into: into) do
     [

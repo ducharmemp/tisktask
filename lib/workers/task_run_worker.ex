@@ -5,8 +5,8 @@ defmodule Workers.TaskRunWorker do
   alias Tisktask.Commands
   alias Tisktask.Containers.Buildah
   alias Tisktask.Filesystem
-  alias Tisktask.Git
   alias Tisktask.SourceControl
+  alias Tisktask.SourceControl.Git
   alias Tisktask.TaskLogs
   alias Tisktask.Tasks
   alias Tisktask.TaskSupervisor
