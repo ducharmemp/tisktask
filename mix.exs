@@ -58,7 +58,7 @@ defmodule Tisktask.MixProject do
       {:bandit, "~> 1.5"},
       {:oban, "~> 2.19"},
       {:oban_web, "~> 2.11"},
-      {:igniter, "~> 0.5", only: [:dev]},
+      {:igniter, "~> 0.7", only: [:dev]},
       {:exile, "~> 0.12.0"},
       {:briefly, "~> 0.5"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
