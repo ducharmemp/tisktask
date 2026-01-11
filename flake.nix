@@ -42,6 +42,7 @@
             watchman
             claude-code
             gemini-cli
+            jq
           ];
         in
         {

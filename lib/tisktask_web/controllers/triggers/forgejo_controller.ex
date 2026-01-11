@@ -1,4 +1,4 @@
-defmodule TisktaskWeb.Triggers.GithubController do
+defmodule TisktaskWeb.Triggers.ForgejoController do
   use TisktaskWeb, :controller
 
   alias Tisktask.Triggers
@@ -6,13 +6,15 @@ defmodule TisktaskWeb.Triggers.GithubController do
   action_fallback(TisktaskWeb.FallbackController)
 
   def create(%{req_headers: headers} = conn, payload) do
+    dbg(headers)
+
     github_attrs =
-      Triggers.Github.attrs_from_event(
+      Triggers.Forgejo.attrs_from_event(
         Map.new(headers),
         payload
       )
 
-    with {:ok, trigger} <- Triggers.create_github_trigger(github_attrs) do
+    with {:ok, trigger} <- Triggers.create_forgejo_trigger(github_attrs) do
       Tisktask.Tasks.create_run(trigger)
 
       conn

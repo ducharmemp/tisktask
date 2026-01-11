@@ -3,6 +3,7 @@ defmodule Tisktask.Triggers do
   import Ecto.Query, warn: false
 
   alias Tisktask.Repo
+  alias Tisktask.Triggers.Forgejo
   alias Tisktask.Triggers.Github
   alias Tisktask.Triggers.GithubRepository
   alias Tisktask.Triggers.GithubRepositoryAttributes
@@ -11,6 +12,14 @@ defmodule Tisktask.Triggers do
     with {:ok, trigger} <- Github.changeset(%Github{}, attrs),
          repository = repository_for(trigger),
          {:ok, _} <- trigger |> Github.assoc_repository(repository) |> Repo.insert() do
+      {:ok, trigger}
+    end
+  end
+
+  def create_forgejo_trigger(attrs \\ %{}) do
+    with {:ok, trigger} <- Forgejo.changeset(%Forgejo{}, attrs),
+         repository = repository_for(trigger),
+         {:ok, _} <- trigger |> Forgejo.assoc_repository(repository) |> Repo.insert() do
       {:ok, trigger}
     end
   end

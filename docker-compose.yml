@@ -13,6 +13,40 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
 
+  forgejo:
+    image: codeberg.org/forgejo/forgejo:13-rootless
+    container_name: forgejo
+    user: 1000:1000
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - FORGEJO__database__DB_TYPE=postgres
+      - FORGEJO__database__HOST=forgejo-db:5432
+      - FORGEJO__database__NAME=forgejo
+      - FORGEJO__database__USER=forgejo
+      - FORGEJO__database__PASSWD=forgejo
+      - FORGEJO__server__ROOT_URL=http://localhost:3000/
+      - FORGEJO__server__HTTP_PORT=3000
+      - FORGEJO__security__INSTALL_LOCK=true
+      - FORGEJO__webhook__ALLOWED_HOST_LIST=host.containers.internal
+      - FORGEJO__webhook__SKIP_TLS_VERIFY=true
+    restart: always
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "3000:3000"
+      - "2222:2222"
+    depends_on:
+      - forgejo-db
+
+  forgejo-db:
+    image: postgres:14
+    restart: always
+    environment:
+      - POSTGRES_USER=forgejo
+      - POSTGRES_PASSWORD=forgejo
+      - POSTGRES_DB=forgejo
+
 volumes:
   postgres:
     external: false
