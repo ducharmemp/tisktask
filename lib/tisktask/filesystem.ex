@@ -41,7 +41,7 @@ defmodule Tisktask.Filesystem do
 
     case Path.safe_relative(path, directory) do
       {:ok, sanitized_path} ->
-        Path.wildcard(Path.join([sanitized_path, pattern]))
+        Path.wildcard(Path.join([directory, sanitized_path, pattern]))
 
       _ ->
         []

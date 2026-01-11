@@ -7,7 +7,7 @@ defmodule Tisktask.Factories.Tasks.RunFactory do
         %Tisktask.Tasks.Run{
           status: :staged,
           github_trigger: build(:github_trigger),
-          log_file: "some log file"
+          log_file: Tisktask.TaskLogs.ensure_log_file!()
         }
       end
 

@@ -1,4 +1,4 @@
-ExUnit.start(exclude: [:skip])
+ExUnit.start(exclude: [:skip, :integration])
 
 Faker.start()
 Mimic.copy(Tisktask.SourceControl.Git)

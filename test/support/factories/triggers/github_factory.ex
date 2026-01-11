@@ -6,7 +6,7 @@ defmodule Tisktask.Factories.Triggers.GithubFactory do
         %Tisktask.Triggers.Github{
           type: "push",
           action: "created",
-          github_repository_id: 123,
+          source_control_repository: build(:github_repository),
           payload: %{
             "after" => "1234567890abcdef1234567890abcdef12345678"
           }

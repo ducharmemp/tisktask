@@ -7,7 +7,6 @@ defmodule Tisktask.Commands.SocketListener do
   alias Tisktask.Tasks.Job
   alias Tisktask.Tasks.Run
 
-  @initial_state %{socket: nil, socket_name: nil}
   @socket_path "data/socket"
   @commands %{
     SpawnJob.name() => SpawnJob,
@@ -50,7 +49,7 @@ defmodule Tisktask.Commands.SocketListener do
     end
   end
 
-  def handle_info({"task_jobs:updated:" <> _id, %Job{id: id} = job}, {socket, state}) do
+  def handle_info({"task_jobs:updated:" <> _id, %Job{} = _job}, {socket, state}) do
     {:noreply, {socket, state}}
   end
 
@@ -85,7 +84,7 @@ defmodule Tisktask.Commands.SocketListener do
     ThousandIsland.Socket.send(socket, Redix.Protocol.pack([reply]))
   end
 
-  defp respond_to_client({:noreply, reply}, socket) do
+  defp respond_to_client({:noreply, _reply}, _socket) do
     :ok
   end
 

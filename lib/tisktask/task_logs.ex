@@ -2,12 +2,6 @@ defmodule Tisktask.TaskLogs do
   @moduledoc false
   use Tisktask.PubSub
 
-  import Bitwise
-  import Ecto.Query, warn: false
-
-  alias Tisktask.Tasks.Job
-  alias Tisktask.Tasks.Run
-
   defp new_log_file do
     Path.join(["data", "logs", "#{UUID.uuid4(:hex)}.log"])
   end

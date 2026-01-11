@@ -10,7 +10,8 @@ defmodule Tisktask.Factories.Triggers.GithubRepositoryAttributesFactory do
             "description" => "Test repository",
             "private" => false,
             "created_at" => "2023-01-01T00:00:00Z",
-            "updated_at" => "2023-01-02T00:00:00Z"
+            "updated_at" => "2023-01-02T00:00:00Z",
+            "statuses_url" => "https://api.github.com/repos/test-org/test-repo/statuses/{sha}"
           }
         }
       end

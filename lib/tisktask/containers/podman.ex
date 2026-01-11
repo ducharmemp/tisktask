@@ -9,7 +9,6 @@ defmodule Tisktask.Containers.Podman do
 
     {_, 0} =
       ["create", "--rm", "--env-file", env_file, "--pod", pod_id]
-      |> Enum.concat()
       |> Enum.concat(["--volume", "#{volume}:/etc/tisktask/command.sock:rw,Z"])
       |> Enum.concat([image, hook_path])
       |> Enum.concat(Enum.map(args, &to_string/1))

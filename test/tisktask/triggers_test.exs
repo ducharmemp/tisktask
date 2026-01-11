@@ -40,18 +40,13 @@ defmodule Tisktask.TriggersTest do
 
   describe "env_for/1" do
     test "returns correct environment variables" do
-      repository = build(:github_repository)
-
-      attributes =
-        insert(:github_repository_attributes,
-          github_repository: repository,
-          github_repository_id: 123
-        )
+      repository = insert(:github_repository)
 
       trigger =
-        build(:github_trigger,
+        insert(:github_trigger,
           type: "push",
           action: "created",
+          source_control_repository: repository,
           payload: %{"after" => "abc123"}
         )
 
@@ -95,13 +90,13 @@ defmodule Tisktask.TriggersTest do
       Req.Test.stub(Triggers, &Plug.Conn.send_resp(&1, 201, ""))
 
       repository =
-        build(:github_repository,
+        insert(:github_repository,
           api_token: "test-token"
         )
 
       insert(
         :github_repository_attributes,
-        github_repository: repository,
+        source_control_repository_id: repository.id,
         github_repository_id: 123,
         raw_attributes: %{
           "statuses_url" => "https://api.github.com/repos/owner/repo/statuses/{sha}"
@@ -109,7 +104,8 @@ defmodule Tisktask.TriggersTest do
       )
 
       trigger =
-        build(:github_trigger,
+        insert(:github_trigger,
+          source_control_repository: repository,
           payload: %{"after" => "abc123"}
         )
 

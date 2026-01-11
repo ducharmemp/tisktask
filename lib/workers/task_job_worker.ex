@@ -3,14 +3,9 @@ defmodule Workers.TaskJobWorker do
   use Oban.Worker, queue: :default, max_attempts: 1
 
   alias Tisktask.Commands
-  alias Tisktask.Containers.Buildah
   alias Tisktask.Containers.Podman
-  alias Tisktask.Filesystem
-  alias Tisktask.Git
-  alias Tisktask.SourceControl
   alias Tisktask.TaskLogs
   alias Tisktask.Tasks
-  alias Tisktask.TaskSupervisor
   alias Tisktask.Triggers
 
   @impl Oban.Worker
@@ -36,7 +31,7 @@ defmodule Workers.TaskJobWorker do
       "pending"
     )
 
-    command_socket = Commands.spawn_command_listeners()
+    command_socket = Commands.spawn_command_listeners(task_run)
 
     {_, exit_status} =
       Podman.run_job(
@@ -44,7 +39,7 @@ defmodule Workers.TaskJobWorker do
         task_job.program_path,
         env_file,
         command_socket,
-        into: Tisktask.TaskLogs.stream_to(task_job)
+        into: TaskLogs.stream_to(task_job)
       )
 
     status = if exit_status == 0, do: "success", else: "failure"

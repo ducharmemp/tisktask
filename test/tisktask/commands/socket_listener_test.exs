@@ -1,16 +1,18 @@
 defmodule Tisktask.Commands.SocketListenerTest do
-  use ExUnit.Case, async: true
+  use Tisktask.DataCase, async: true
 
   alias Tisktask.Commands.CommandFixture
   alias Tisktask.Commands.SocketListener
 
   setup do
+    run = insert(:task_run)
+
     commands = %{
       CommandFixture.name() => CommandFixture
     }
 
     Phoenix.PubSub.subscribe(Tisktask.PubSub, "tisktask:command")
-    {:ok, pid, socket_path} = SocketListener.start_link(commands)
+    {:ok, _pid, socket_path} = SocketListener.start_link(run, commands)
     {:ok, socket} = :gen_tcp.connect({:local, socket_path}, 0, [:binary, active: false])
 
     on_exit(fn ->
