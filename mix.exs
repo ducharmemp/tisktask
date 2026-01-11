@@ -83,7 +83,20 @@ defmodule Tisktask.MixProject do
   defp aliases do
     [
       setup: ["deps.get", "ecto.setup", "assets.setup", "assets.build"],
-      "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
+      "ecto.structure.fixup": [
+        "cmd sed -i '1,7d' priv/repo/structure.sql",
+        "cmd sed -i '/\\unrestrict/d' priv/repo/structure.sql"
+      ],
+      "ecto.dump": ["ecto.dump", "ecto.structure.fixup"],
+      "ecto.migrate": ["ecto.migrate", "ecto.dump"],
+      "ecto.rollback": ["ecto.rollback", "ecto.dump"],
+      "ecto.setup": [
+        "ecto.create",
+        "ecto.load",
+        "ecto.migrate",
+        "ecto.dump",
+        "run priv/repo/seeds.exs"
+      ],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.drop --quiet", "ecto.create --quiet", "ecto.migrate", "test"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],

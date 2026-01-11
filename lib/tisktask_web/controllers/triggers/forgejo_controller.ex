@@ -7,6 +7,7 @@ defmodule TisktaskWeb.Triggers.ForgejoController do
 
   def create(%{req_headers: headers} = conn, payload) do
     dbg(headers)
+    dbg(payload)
 
     github_attrs =
       Triggers.Forgejo.attrs_from_event(

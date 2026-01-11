@@ -4,7 +4,7 @@ defmodule Tisktask.Containers.Podman do
     args = Keyword.get(options, :args, [])
     into = Keyword.get(options, :into, fn _ -> nil end)
 
-    {pod_id, 0} = System.cmd(podman_exe(), ["pod", "create"], stderr_to_stdout: true)
+    {pod_id, 0} = System.cmd(podman_exe(), ["pod", "create", "--exit-policy=stop"], stderr_to_stdout: true)
     pod_id = String.trim(pod_id)
 
     {_, 0} =
@@ -13,7 +13,7 @@ defmodule Tisktask.Containers.Podman do
       |> Enum.concat(["--volume", "#{volume}:/etc/tisktask/command.sock:rw,Z"])
       |> Enum.concat([image, hook_path])
       |> Enum.concat(Enum.map(args, &to_string/1))
-      |> System.cmd(podman_exe(), &1, stderr_to_stdout: true)
+      |> then(&System.cmd(podman_exe(), &1, stderr_to_stdout: true))
 
     {_, 0} = System.cmd(podman_exe(), ["pod", "start", pod_id], stderr_to_stdout: true)
 
