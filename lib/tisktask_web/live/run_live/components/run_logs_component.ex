@@ -26,7 +26,7 @@ defmodule TisktaskWeb.Live.RunLive.Components.RunLogsComponent do
     """
   end
 
-  def update(%{run: run, log: log} = assigns, socket) do
+  def update(%{run: run, log: log} = _assigns, socket) do
     {:ok,
      socket
      |> stream_insert(:logs, log)

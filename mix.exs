@@ -14,6 +14,10 @@ defmodule Tisktask.MixProject do
     ]
   end
 
+  def cli do
+    [preferred_envs: [precommit: :test]]
+  end
+
   # Configuration for the OTP application.
   #
   # Type `mix help compile.app` for more information.
@@ -105,6 +109,13 @@ defmodule Tisktask.MixProject do
         "tailwind tisktask --minify",
         "esbuild tisktask --minify",
         "phx.digest"
+      ],
+      precommit: [
+        "compile --warning-as-errors",
+        "deps.unlock --unused",
+        "format",
+        "test",
+        "credo --strict"
       ]
     ]
   end

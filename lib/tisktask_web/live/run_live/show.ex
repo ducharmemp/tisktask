@@ -11,7 +11,7 @@ defmodule TisktaskWeb.RunLive.Show do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
         Run {@run.id}
         <:subtitle>
@@ -91,7 +91,7 @@ defmodule TisktaskWeb.RunLive.Show do
   end
 
   @impl true
-  def handle_info({"task_jobs:updated:" <> _id, %Job{id: id} = job}, socket) do
+  def handle_info({"task_jobs:updated:" <> _topic_id, %Job{id: _job_id} = job}, socket) do
     send_update(
       JobLogsComponent,
       id: log_id_for(job),
@@ -102,7 +102,7 @@ defmodule TisktaskWeb.RunLive.Show do
   end
 
   @impl true
-  def handle_info({"task_runs:log:" <> _id, %Run{id: id} = run, log}, socket) do
+  def handle_info({"task_runs:log:" <> _topic_id, %Run{id: _run_id} = run, log}, socket) do
     send_update(
       RunLogsComponent,
       id: log_id_for(run),
@@ -114,7 +114,7 @@ defmodule TisktaskWeb.RunLive.Show do
   end
 
   @impl true
-  def handle_info({"task_jobs:log:" <> _id, %Job{id: id} = job, log}, socket) do
+  def handle_info({"task_jobs:log:" <> _topic_id, %Job{id: _job_id} = job, log}, socket) do
     send_update(
       JobLogsComponent,
       id: log_id_for(job),

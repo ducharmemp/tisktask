@@ -2,14 +2,11 @@ defmodule Workers.TaskRunWorker do
   @moduledoc false
   use Oban.Worker, queue: :default, max_attempts: 1
 
-  alias Tisktask.Commands
   alias Tisktask.Containers.Buildah
   alias Tisktask.Filesystem
-  alias Tisktask.SourceControl
   alias Tisktask.SourceControl.Git
   alias Tisktask.TaskLogs
   alias Tisktask.Tasks
-  alias Tisktask.TaskSupervisor
   alias Tisktask.Triggers
 
   @impl Oban.Worker
@@ -41,7 +38,7 @@ defmodule Workers.TaskRunWorker do
       into: TaskLogs.stream_to(task_run)
     )
 
-    all_jobs = Enum.map(all_jobs_to_run, &Tasks.create_job!(task_run, %{program_path: &1}))
+    _all_jobs = Enum.map(all_jobs_to_run, &Tasks.create_job!(task_run, %{program_path: &1}))
 
     Tasks.complete_run!(task_run)
 

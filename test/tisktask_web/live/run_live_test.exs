@@ -4,7 +4,6 @@ defmodule TisktaskWeb.RunLiveTest do
   import Phoenix.LiveViewTest
 
   @create_attrs %{}
-  @invalid_attrs %{}
   defp create_run(_) do
     run = insert(:task_run)
 
