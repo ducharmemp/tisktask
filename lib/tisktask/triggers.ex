@@ -6,7 +6,6 @@ defmodule Tisktask.Triggers do
   alias Tisktask.Triggers.Forgejo
   alias Tisktask.Triggers.Github
   alias Tisktask.Triggers.GithubRepository
-  alias Tisktask.Triggers.GithubRepositoryAttributes
 
   def create_github_trigger(attrs \\ %{}) do
     with {:ok, trigger} <- Github.changeset(%Github{}, attrs),
@@ -28,25 +27,21 @@ defmodule Tisktask.Triggers do
     Repo.get(GithubRepository, trigger.source_control_repository_id)
   end
 
-  def repository_for!(%Github{github_repository_id: nil} = trigger) do
-    Repo.get!(GithubRepository, trigger.source_control_repository_id)
-  end
-
   def repository_for(%Github{github_repository_id: github_repository_id}) do
     Repo.one(
       from r in GithubRepository,
-        join: a in GithubRepositoryAttributes,
-        on: a.source_control_repository_id == r.id,
-        where: a.github_repository_id == ^github_repository_id
+        where: r.external_repository_id == ^github_repository_id
     )
+  end
+
+  def repository_for!(%Github{github_repository_id: nil} = trigger) do
+    Repo.get!(GithubRepository, trigger.source_control_repository_id)
   end
 
   def repository_for!(%Github{github_repository_id: github_repository_id}) do
     Repo.one!(
       from r in GithubRepository,
-        join: a in GithubRepositoryAttributes,
-        on: a.source_control_repository_id == r.id,
-        where: a.github_repository_id == ^github_repository_id
+        where: r.external_repository_id == ^github_repository_id
     )
   end
 
@@ -79,12 +74,12 @@ defmodule Tisktask.Triggers do
   end
 
   def update_remote_status(%Github{} = trigger, name, status) do
-    repository = trigger |> repository_for!() |> Repo.preload(:github_repository_attributes)
+    repository = repository_for!(trigger)
 
-    response =
+    _response =
       [
         method: :post,
-        base_url: Map.get(repository.github_repository_attributes.raw_attributes, "statuses_url"),
+        base_url: Map.get(repository.raw_attributes, "statuses_url"),
         path_params: [
           sha: head_sha(trigger)
         ],

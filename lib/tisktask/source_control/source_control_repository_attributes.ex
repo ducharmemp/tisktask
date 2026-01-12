@@ -4,19 +4,15 @@ defmodule Tisktask.SourceControl.GithubRepositoryAttributes do
 
   import Ecto.Changeset
 
-  schema "github_repository_attributes" do
-    field :github_repository_id, :integer
-
-    belongs_to :source_control_repository, Tisktask.SourceControl.Repository, foreign_key: :source_control_repository_id
-
+  @primary_key false
+  embedded_schema do
+    field :external_repository_id, :integer
     field :raw_attributes, :map
-
-    timestamps(type: :utc_datetime)
   end
 
-  def changeset(github_repository_attributes, attrs) do
-    github_repository_attributes
-    |> cast(attrs, [:github_repository_id, :raw_attributes])
-    |> validate_required([:github_repository_id, :raw_attributes])
+  def changeset(attributes, attrs) do
+    attributes
+    |> cast(attrs, [:external_repository_id, :raw_attributes])
+    |> validate_required([:external_repository_id, :raw_attributes])
   end
 end

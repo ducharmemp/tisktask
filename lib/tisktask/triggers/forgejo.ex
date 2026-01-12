@@ -4,14 +4,14 @@ defmodule Tisktask.Triggers.Forgejo do
 
   import Ecto.Changeset
 
-  alias Tisktask.Triggers.GithubRepository
+  alias Tisktask.Triggers.ForgejoRepository
 
   schema "forgejo_triggers" do
     field :type, :string
     field :action, :string
     field :payload, :map
-    field :github_repository_id, :integer, virtual: true
-    belongs_to :source_control_repository, GithubRepository
+    field :repository_id, :integer, virtual: true
+    belongs_to :source_control_repository, ForgejoRepository
     timestamps()
   end
 
@@ -21,7 +21,7 @@ defmodule Tisktask.Triggers.Forgejo do
     |> validate_required([:type, :payload])
   end
 
-  def assoc_repository(%__MODULE__{} = trigger, %GithubRepository{} = repository) do
+  def assoc_repository(%__MODULE__{} = trigger, %ForgejoRepository{} = repository) do
     put_assoc(trigger, :source_control_repository, repository)
   end
 

@@ -6,10 +6,8 @@ defmodule Tisktask.Triggers.GithubRepository do
     field :name, :string
     field :url, :string
     field :api_token, :string, redact: true
-
-    has_one(:github_repository_attributes, Tisktask.SourceControl.GithubRepositoryAttributes,
-      foreign_key: :source_control_repository_id
-    )
+    field :external_repository_id, :integer
+    field :raw_attributes, :map
 
     timestamps(type: :utc_datetime)
   end

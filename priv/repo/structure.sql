@@ -46,39 +46,6 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: github_repository_attributes; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.github_repository_attributes (
-    id bigint NOT NULL,
-    source_control_repository_id bigint NOT NULL,
-    github_repository_id bigint NOT NULL,
-    raw_attributes jsonb NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL
-);
-
-
---
--- Name: github_repository_attributes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.github_repository_attributes_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: github_repository_attributes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.github_repository_attributes_id_seq OWNED BY public.github_repository_attributes.id;
-
-
---
 -- Name: github_triggers; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -236,7 +203,9 @@ CREATE TABLE public.source_control_repositories (
     url text,
     api_token text,
     inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL
+    updated_at timestamp(0) without time zone NOT NULL,
+    external_repository_id bigint,
+    raw_attributes jsonb
 );
 
 
@@ -394,13 +363,6 @@ ALTER SEQUENCE public.users_tokens_id_seq OWNED BY public.users_tokens.id;
 
 
 --
--- Name: github_repository_attributes id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.github_repository_attributes ALTER COLUMN id SET DEFAULT nextval('public.github_repository_attributes_id_seq'::regclass);
-
-
---
 -- Name: github_triggers id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -454,14 +416,6 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 --
 
 ALTER TABLE ONLY public.users_tokens ALTER COLUMN id SET DEFAULT nextval('public.users_tokens_id_seq'::regclass);
-
-
---
--- Name: github_repository_attributes github_repository_attributes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.github_repository_attributes
-    ADD CONSTRAINT github_repository_attributes_pkey PRIMARY KEY (id);
 
 
 --
@@ -630,14 +584,6 @@ CREATE INDEX users_tokens_user_id_index ON public.users_tokens USING btree (user
 
 
 --
--- Name: github_repository_attributes github_repository_attributes_source_control_repository_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.github_repository_attributes
-    ADD CONSTRAINT github_repository_attributes_source_control_repository_id_fkey FOREIGN KEY (source_control_repository_id) REFERENCES public.source_control_repositories(id) ON DELETE CASCADE;
-
-
---
 -- Name: github_triggers github_triggers_source_control_repository_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -705,3 +651,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20250504211119);
 INSERT INTO public."schema_migrations" (version) VALUES (20250505003347);
 INSERT INTO public."schema_migrations" (version) VALUES (20250528005410);
 INSERT INTO public."schema_migrations" (version) VALUES (20250528005704);
+INSERT INTO public."schema_migrations" (version) VALUES (20260112023849);

@@ -6,10 +6,8 @@ defmodule Tisktask.Triggers.ForgejoRepository do
     field :name, :string
     field :url, :string
     field :api_token, :string, redact: true
-
-    has_one(:forgejo_repository_attributes, Tisktask.SourceControl.ForgejoRepositoryAttributes,
-      foreign_key: :source_control_repository_id
-    )
+    field :external_repository_id, :integer
+    field :raw_attributes, :map
 
     timestamps(type: :utc_datetime)
   end

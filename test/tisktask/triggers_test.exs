@@ -2,9 +2,6 @@ defmodule Tisktask.TriggersTest do
   use Tisktask.DataCase, async: true
 
   alias Tisktask.Triggers
-  alias Tisktask.Triggers.Github
-  alias Tisktask.Triggers.GithubRepository
-  alias Tisktask.Triggers.GithubRepositoryAttributes
 
   describe "repository_for/1" do
     test "returns repository when github_repository_id is nil" do
@@ -20,18 +17,11 @@ defmodule Tisktask.TriggersTest do
     end
 
     test "returns repository when github_repository_id is present" do
-      repository = insert(:github_repository)
-
-      attributes =
-        insert(
-          :github_repository_attributes,
-          source_control_repository_id: repository.id,
-          github_repository_id: 123
-        )
+      repository = insert(:github_repository, external_repository_id: 123)
 
       trigger =
         build(:github_trigger,
-          github_repository_id: attributes.github_repository_id
+          github_repository_id: 123
         )
 
       assert Triggers.repository_for(trigger) == repository
@@ -91,17 +81,11 @@ defmodule Tisktask.TriggersTest do
 
       repository =
         insert(:github_repository,
-          api_token: "test-token"
+          api_token: "test-token",
+          raw_attributes: %{
+            "statuses_url" => "https://api.github.com/repos/owner/repo/statuses/{sha}"
+          }
         )
-
-      insert(
-        :github_repository_attributes,
-        source_control_repository_id: repository.id,
-        github_repository_id: 123,
-        raw_attributes: %{
-          "statuses_url" => "https://api.github.com/repos/owner/repo/statuses/{sha}"
-        }
-      )
 
       trigger =
         insert(:github_trigger,
