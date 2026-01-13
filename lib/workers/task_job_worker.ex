@@ -14,19 +14,19 @@ defmodule Workers.TaskJobWorker do
     task_job = Tasks.get_job!(task_job_id)
 
     triggering_repository_name =
-      task_run.github_trigger |> Triggers.repository_for!() |> Triggers.repository_name()
+      task_run.trigger |> Triggers.repository_for!() |> Triggers.repository_name()
 
-    triggering_sha = Triggers.head_sha(task_run.github_trigger)
+    triggering_sha = Triggers.head_sha(task_run.trigger)
 
     env_file = Tasks.Env.ensure_env_file!()
 
     task_run
     |> Tasks.env_for()
-    |> Map.merge(Triggers.env_for(task_run.github_trigger))
+    |> Map.merge(Triggers.env_for(task_run.trigger))
     |> then(fn mapped -> Tasks.Env.write_env_to(env_file, mapped) end)
 
     Triggers.update_remote_status(
-      task_run.github_trigger,
+      task_run.trigger,
       task_job.program_path,
       "pending"
     )
@@ -45,7 +45,7 @@ defmodule Workers.TaskJobWorker do
     status = if exit_status == 0, do: "success", else: "failure"
 
     Triggers.update_remote_status(
-      task_run.github_trigger,
+      task_run.trigger,
       task_job.program_path,
       status
     )

@@ -4,7 +4,7 @@ defmodule Tisktask.Tasks.Run do
 
   import Ecto.Changeset
 
-  alias Tisktask.Triggers
+  alias Tisktask.Triggers.Trigger
 
   schema "task_runs" do
     field(:status, Ecto.Enum, values: [:staged, :running, :completed, :timeout])
@@ -12,7 +12,7 @@ defmodule Tisktask.Tasks.Run do
     field(:any_jobs_failed?, :boolean, default: false, virtual: true)
     has_many(:jobs, Tisktask.Tasks.Job, foreign_key: :task_run_id)
 
-    belongs_to(:github_trigger, Tisktask.Triggers.Github)
+    belongs_to(:trigger, Trigger)
 
     timestamps(type: :utc_datetime)
   end
@@ -25,11 +25,11 @@ defmodule Tisktask.Tasks.Run do
     |> unique_constraint(:log_file)
   end
 
-  def trigger_from(run, %Triggers.Github{} = trigger) do
-    put_assoc(run, :github_trigger, trigger)
+  def trigger_from(run, %Trigger{} = trigger) do
+    put_assoc(run, :trigger, trigger)
   end
 
   def trigger_for(run) do
-    run.github_trigger
+    run.trigger
   end
 end

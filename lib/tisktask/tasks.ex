@@ -12,10 +12,10 @@ defmodule Tisktask.Tasks do
   alias Tisktask.Tasks.Run
 
   def list_task_runs do
-    all_task_runs_query() |> Repo.all() |> Repo.preload(github_trigger: :source_control_repository)
+    all_task_runs_query() |> Repo.all() |> Repo.preload(trigger: :source_control_repository)
   end
 
-  def get_run!(id), do: all_task_runs_query() |> Repo.get!(id) |> Repo.preload(github_trigger: :source_control_repository)
+  def get_run!(id), do: all_task_runs_query() |> Repo.get!(id) |> Repo.preload(trigger: :source_control_repository)
   def get_job!(id), do: Repo.get!(Job, id)
 
   def preload_task_jobs(run) do

@@ -51,6 +51,23 @@ defmodule Tisktask.SourceControl do
     })
   end
 
+  def synchronize_from_forgejo!(url, api_token) do
+    uri = URI.parse(url)
+    [_, owner, repo] = String.split(uri.path, "/")
+    response = execute_forgejo_request!(uri, owner, repo, api_token)
+    name = Map.get(response, "name")
+    clone_url = Map.get(response, "clone_url")
+    forgejo_repository_id = Map.get(response, "id")
+
+    create_repository(%{
+      name: name,
+      url: clone_url,
+      api_token: api_token,
+      external_repository_id: forgejo_repository_id,
+      raw_attributes: response
+    })
+  end
+
   defp execute_github_request!(owner, repo, api_token) do
     response =
       [
@@ -62,6 +79,24 @@ defmodule Tisktask.SourceControl do
         auth: {:bearer, api_token}
       ]
       |> Keyword.merge(Application.get_env(:tisktask, :github_req_options, []))
+      |> Req.request!()
+
+    response.body
+  end
+
+  defp execute_forgejo_request!(uri, owner, repo, api_token) do
+    base_url = "#{uri.scheme}://#{uri.host}#{if uri.port, do: ":#{uri.port}", else: ""}"
+
+    response =
+      [
+        base_url: "#{base_url}/api/v1/repos/:owner/:repo",
+        path_params: [
+          owner: owner,
+          repo: repo
+        ],
+        auth: {:bearer, api_token}
+      ]
+      |> Keyword.merge(Application.get_env(:tisktask, :forgejo_req_options, []))
       |> Req.request!()
 
     response.body

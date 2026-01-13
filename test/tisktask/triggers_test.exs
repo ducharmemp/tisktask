@@ -3,37 +3,51 @@ defmodule Tisktask.TriggersTest do
 
   alias Tisktask.Triggers
 
-  describe "repository_for/1" do
-    test "returns repository when github_repository_id is nil" do
-      repository = insert(:github_repository)
+  describe "create_trigger/1" do
+    test "creates trigger and associates repository by external_repository_id" do
+      repository = insert(:source_control_repository, external_repository_id: 12_345)
 
-      trigger =
-        build(:github_trigger,
-          github_repository_id: nil,
-          source_control_repository_id: repository.id
-        )
+      attrs = %{
+        provider: "github",
+        type: "push",
+        action: "created",
+        payload: %{"after" => "abc123"},
+        repository_id: 12_345
+      }
 
-      assert Triggers.repository_for(trigger) == repository
+      assert {:ok, trigger} = Triggers.create_trigger(attrs)
+      assert trigger.source_control_repository_id == repository.id
     end
 
-    test "returns repository when github_repository_id is present" do
-      repository = insert(:github_repository, external_repository_id: 123)
+    test "returns error when repository not found" do
+      attrs = %{
+        provider: "github",
+        type: "push",
+        action: "created",
+        payload: %{"after" => "abc123"},
+        repository_id: 99_999
+      }
 
-      trigger =
-        build(:github_trigger,
-          github_repository_id: 123
-        )
+      assert {:error, :repository_not_found} = Triggers.create_trigger(attrs)
+    end
+  end
+
+  describe "repository_for/1" do
+    test "returns repository for persisted trigger" do
+      repository = insert(:source_control_repository)
+      trigger = insert(:trigger, source_control_repository: repository)
 
       assert Triggers.repository_for(trigger) == repository
     end
   end
 
   describe "env_for/1" do
-    test "returns correct environment variables" do
-      repository = insert(:github_repository)
+    test "returns correct environment variables for github" do
+      repository = insert(:source_control_repository)
 
       trigger =
-        insert(:github_trigger,
+        insert(:trigger,
+          provider: "github",
           type: "push",
           action: "created",
           source_control_repository: repository,
@@ -50,12 +64,35 @@ defmodule Tisktask.TriggersTest do
                TISKTASK_GITHUB_REPOSITORY: repository.name
              }
     end
+
+    test "returns correct environment variables for forgejo" do
+      repository = insert(:source_control_repository)
+
+      trigger =
+        insert(:trigger,
+          provider: "forgejo",
+          type: "push",
+          action: "created",
+          source_control_repository: repository,
+          payload: %{"after" => "abc123"}
+        )
+
+      env = Triggers.env_for(trigger)
+
+      assert env == %{
+               CI: "true",
+               TISKTASK_FORGEJO_EVENT: "push",
+               TISKTASK_FORGEJO_ACTION: "created",
+               TISKTASK_FORGEJO_SHA: "abc123",
+               TISKTASK_FORGEJO_REPOSITORY: repository.name
+             }
+    end
   end
 
   describe "head_sha/1" do
     test "returns the after value from payload" do
       trigger =
-        build(:github_trigger,
+        build(:trigger,
           payload: %{"after" => "abc123"}
         )
 
@@ -66,7 +103,7 @@ defmodule Tisktask.TriggersTest do
   describe "type/1" do
     test "joins type and action" do
       trigger =
-        build(:github_trigger,
+        build(:trigger,
           type: "push",
           action: "created"
         )
@@ -80,7 +117,7 @@ defmodule Tisktask.TriggersTest do
       Req.Test.stub(Triggers, &Plug.Conn.send_resp(&1, 201, ""))
 
       repository =
-        insert(:github_repository,
+        insert(:source_control_repository,
           api_token: "test-token",
           raw_attributes: %{
             "statuses_url" => "https://api.github.com/repos/owner/repo/statuses/{sha}"
@@ -88,7 +125,7 @@ defmodule Tisktask.TriggersTest do
         )
 
       trigger =
-        insert(:github_trigger,
+        insert(:trigger,
           source_control_repository: repository,
           payload: %{"after" => "abc123"}
         )

@@ -2,17 +2,18 @@ defmodule TisktaskWeb.Triggers.ForgejoController do
   use TisktaskWeb, :controller
 
   alias Tisktask.Triggers
+  alias Tisktask.Triggers.Trigger
 
   action_fallback(TisktaskWeb.FallbackController)
 
   def create(%{req_headers: headers} = conn, payload) do
-    forgejo_attrs =
-      Triggers.Forgejo.attrs_from_event(
+    trigger_attrs =
+      Trigger.attrs_from_forgejo_event(
         Map.new(headers),
         payload
       )
 
-    with {:ok, trigger} <- Triggers.create_forgejo_trigger(forgejo_attrs) do
+    with {:ok, trigger} <- Triggers.create_trigger(trigger_attrs) do
       Tisktask.Tasks.create_run(trigger)
 
       conn

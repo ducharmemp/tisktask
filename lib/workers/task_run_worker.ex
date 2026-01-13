@@ -13,8 +13,8 @@ defmodule Workers.TaskRunWorker do
   def perform(%Oban.Job{args: %{"task_run_id" => task_run_id}}) do
     {:ok, build_context} = Briefly.create(type: :directory)
     task_run = Tasks.get_run!(task_run_id)
-    triggering_repository = Triggers.repository_for!(task_run.github_trigger)
-    triggering_sha = Triggers.head_sha(task_run.github_trigger)
+    triggering_repository = Triggers.repository_for!(task_run.trigger)
+    triggering_sha = Triggers.head_sha(task_run.trigger)
     triggering_repository_name = Triggers.repository_name(triggering_repository)
 
     Tasks.start_run!(task_run)
@@ -26,10 +26,10 @@ defmodule Workers.TaskRunWorker do
     Git.checkout(triggering_sha, build_context, into: TaskLogs.stream_to(task_run))
 
     all_jobs_to_run =
-      Filesystem.all_jobs_for(build_context, Triggers.type(task_run.github_trigger))
+      Filesystem.all_jobs_for(build_context, Triggers.type(task_run.trigger))
 
     build_file =
-      Filesystem.build_file_for(build_context, Triggers.type(task_run.github_trigger))
+      Filesystem.build_file_for(build_context, Triggers.type(task_run.trigger))
 
     Buildah.build_image(
       build_context,

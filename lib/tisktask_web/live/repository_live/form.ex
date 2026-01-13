@@ -16,11 +16,26 @@ defmodule TisktaskWeb.RepositoryLive.Form do
 
       <.form for={@form} id="repository-form" phx-change="validate" phx-submit="save">
         <.input
-          field={@form[:owner_and_repo]}
-          type="text"
-          label="Owner and Repo"
-          placeholder="owner/repo"
+          field={@form[:provider_type]}
+          type="select"
+          label="Provider"
+          options={[{"GitHub", "github"}, {"Forgejo", "forgejo"}]}
         />
+        <%= if @provider_type == "github" do %>
+          <.input
+            field={@form[:owner_and_repo]}
+            type="text"
+            label="Owner and Repo"
+            placeholder="owner/repo"
+          />
+        <% else %>
+          <.input
+            field={@form[:url]}
+            type="text"
+            label="Repository URL"
+            placeholder="https://forgejo.example.com/owner/repo"
+          />
+        <% end %>
         <.input field={@form[:api_token]} type="text" label="API Token" />
         <footer>
           <.button phx-disable-with="Saving..." variant="primary">Save Repository</.button>
@@ -48,6 +63,7 @@ defmodule TisktaskWeb.RepositoryLive.Form do
     socket
     |> assign(:page_title, "Edit Repository")
     |> assign(:repository, repository)
+    |> assign(:provider_type, "github")
     |> assign(:form, to_form(SourceControl.change_repository(repository)))
   end
 
@@ -57,15 +73,21 @@ defmodule TisktaskWeb.RepositoryLive.Form do
     socket
     |> assign(:page_title, "New Repository")
     |> assign(:repository, repository)
+    |> assign(:provider_type, "github")
     |> assign(:form, to_form(SourceControl.change_repository(repository)))
   end
 
   @impl true
   def handle_event("validate", %{"repository" => repository_params}, socket) do
+    provider_type = Map.get(repository_params, "provider_type", "github")
+
     changeset =
       SourceControl.change_repository(socket.assigns.repository, repository_params)
 
-    {:noreply, assign(socket, form: to_form(changeset, action: :validate))}
+    {:noreply,
+     socket
+     |> assign(:provider_type, provider_type)
+     |> assign(:form, to_form(changeset, action: :validate))}
   end
 
   def handle_event("save", %{"repository" => repository_params}, socket) do
@@ -86,10 +108,22 @@ defmodule TisktaskWeb.RepositoryLive.Form do
   end
 
   defp save_repository(socket, :new, repository_params) do
-    case SourceControl.synchronize_from_github!(
-           repository_params["owner_and_repo"],
-           repository_params["api_token"]
-         ) do
+    result =
+      case repository_params["provider_type"] do
+        "forgejo" ->
+          SourceControl.synchronize_from_forgejo!(
+            repository_params["url"],
+            repository_params["api_token"]
+          )
+
+        _github ->
+          SourceControl.synchronize_from_github!(
+            repository_params["owner_and_repo"],
+            repository_params["api_token"]
+          )
+      end
+
+    case result do
       {:ok, repository} ->
         {:noreply,
          socket

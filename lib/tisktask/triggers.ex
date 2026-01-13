@@ -3,49 +3,42 @@ defmodule Tisktask.Triggers do
   import Ecto.Query, warn: false
 
   alias Tisktask.Repo
-  alias Tisktask.Triggers.Forgejo
-  alias Tisktask.Triggers.Github
-  alias Tisktask.Triggers.GithubRepository
+  alias Tisktask.SourceControl.Repository
+  alias Tisktask.Triggers.Trigger
 
-  def create_github_trigger(attrs \\ %{}) do
-    with {:ok, trigger} <- Github.changeset(%Github{}, attrs),
-         repository = repository_for(trigger),
-         {:ok, _} <- trigger |> Github.assoc_repository(repository) |> Repo.insert() do
-      {:ok, trigger}
+  def create_trigger(attrs \\ %{}) do
+    changeset = Trigger.changeset(%Trigger{}, attrs)
+    external_id = Ecto.Changeset.get_field(changeset, :repository_id)
+
+    case find_repository(external_id) do
+      nil ->
+        {:error, :repository_not_found}
+
+      repository ->
+        changeset
+        |> Trigger.assoc_repository(repository)
+        |> Repo.insert()
     end
   end
 
-  def create_forgejo_trigger(attrs \\ %{}) do
-    with {:ok, trigger} <- Forgejo.changeset(%Forgejo{}, attrs),
-         repository = repository_for(trigger),
-         {:ok, _} <- trigger |> Forgejo.assoc_repository(repository) |> Repo.insert() do
-      {:ok, trigger}
-    end
-  end
+  defp find_repository(nil), do: nil
 
-  def repository_for(%Github{github_repository_id: nil} = trigger) do
-    Repo.get(GithubRepository, trigger.source_control_repository_id)
-  end
-
-  def repository_for(%Github{github_repository_id: github_repository_id}) do
+  defp find_repository(external_id) do
     Repo.one(
-      from r in GithubRepository,
-        where: r.external_repository_id == ^github_repository_id
+      from r in Repository,
+        where: r.external_repository_id == ^external_id
     )
   end
 
-  def repository_for!(%Github{github_repository_id: nil} = trigger) do
-    Repo.get!(GithubRepository, trigger.source_control_repository_id)
+  def repository_for(%Trigger{} = trigger) do
+    Repo.get(Repository, trigger.source_control_repository_id)
   end
 
-  def repository_for!(%Github{github_repository_id: github_repository_id}) do
-    Repo.one!(
-      from r in GithubRepository,
-        where: r.external_repository_id == ^github_repository_id
-    )
+  def repository_for!(%Trigger{} = trigger) do
+    Repo.get!(Repository, trigger.source_control_repository_id)
   end
 
-  def env_for(%Github{} = trigger) do
+  def env_for(%Trigger{provider: "github"} = trigger) do
     repository = repository_for!(trigger)
 
     %{
@@ -57,23 +50,35 @@ defmodule Tisktask.Triggers do
     }
   end
 
-  def clone_uri(%GithubRepository{} = repo) do
-    GithubRepository.clone_uri(repo)
+  def env_for(%Trigger{provider: "forgejo"} = trigger) do
+    repository = repository_for!(trigger)
+
+    %{
+      CI: "true",
+      TISKTASK_FORGEJO_EVENT: trigger.type,
+      TISKTASK_FORGEJO_ACTION: trigger.action,
+      TISKTASK_FORGEJO_SHA: head_sha(trigger),
+      TISKTASK_FORGEJO_REPOSITORY: repository.name
+    }
   end
 
-  def repository_name(%GithubRepository{name: name}) do
+  def clone_uri(%Repository{} = repo) do
+    Repository.clone_uri(repo)
+  end
+
+  def repository_name(%Repository{name: name}) do
     name
   end
 
-  def head_sha(%Github{} = trigger) do
+  def head_sha(%Trigger{} = trigger) do
     Map.get(trigger.payload, "after")
   end
 
-  def type(%Github{} = trigger) do
-    Path.join(trigger.type, trigger.action)
+  def type(%Trigger{} = trigger) do
+    Path.join(trigger.type, trigger.action || "")
   end
 
-  def update_remote_status(%Github{} = trigger, name, status) do
+  def update_remote_status(%Trigger{} = trigger, name, status) do
     repository = repository_for!(trigger)
 
     _response =

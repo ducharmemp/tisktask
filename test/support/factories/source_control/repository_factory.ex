@@ -4,11 +4,16 @@ defmodule Tisktask.Factories.SourceControl.RepositoryFactory do
     quote do
       def source_control_repository_factory do
         %Tisktask.SourceControl.Repository{
-          name: "some name",
-          url: "some url",
-          api_token: "some api token",
+          name: "test-repo",
+          url: "https://github.com/test-org/test-repo.git",
+          api_token: "test-token",
           external_repository_id: sequence(:external_repository_id, & &1),
-          raw_attributes: %{}
+          raw_attributes: %{
+            "default_branch" => "main",
+            "description" => "Test repository",
+            "private" => false,
+            "statuses_url" => "https://api.github.com/repos/test-org/test-repo/statuses/{sha}"
+          }
         }
       end
     end

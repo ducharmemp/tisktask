@@ -46,40 +46,6 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: github_triggers; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.github_triggers (
-    id bigint NOT NULL,
-    type character varying(255) NOT NULL,
-    action character varying(255),
-    payload jsonb NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL,
-    source_control_repository_id bigint NOT NULL
-);
-
-
---
--- Name: github_triggers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.github_triggers_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: github_triggers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.github_triggers_id_seq OWNED BY public.github_triggers.id;
-
-
---
 -- Name: oban_jobs; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -272,7 +238,7 @@ CREATE TABLE public.task_runs (
     inserted_at timestamp(0) without time zone NOT NULL,
     updated_at timestamp(0) without time zone NOT NULL,
     log_file character varying(255) NOT NULL,
-    github_trigger_id bigint
+    trigger_id bigint
 );
 
 
@@ -293,6 +259,41 @@ CREATE SEQUENCE public.task_runs_id_seq
 --
 
 ALTER SEQUENCE public.task_runs_id_seq OWNED BY public.task_runs.id;
+
+
+--
+-- Name: triggers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.triggers (
+    id bigint NOT NULL,
+    provider character varying(255) NOT NULL,
+    type character varying(255) NOT NULL,
+    action character varying(255),
+    payload jsonb NOT NULL,
+    source_control_repository_id bigint NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
+-- Name: triggers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.triggers_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: triggers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.triggers_id_seq OWNED BY public.triggers.id;
 
 
 --
@@ -363,13 +364,6 @@ ALTER SEQUENCE public.users_tokens_id_seq OWNED BY public.users_tokens.id;
 
 
 --
--- Name: github_triggers id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.github_triggers ALTER COLUMN id SET DEFAULT nextval('public.github_triggers_id_seq'::regclass);
-
-
---
 -- Name: oban_jobs id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -405,6 +399,13 @@ ALTER TABLE ONLY public.task_runs ALTER COLUMN id SET DEFAULT nextval('public.ta
 
 
 --
+-- Name: triggers id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.triggers ALTER COLUMN id SET DEFAULT nextval('public.triggers_id_seq'::regclass);
+
+
+--
 -- Name: users id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -416,14 +417,6 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 --
 
 ALTER TABLE ONLY public.users_tokens ALTER COLUMN id SET DEFAULT nextval('public.users_tokens_id_seq'::regclass);
-
-
---
--- Name: github_triggers github_triggers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.github_triggers
-    ADD CONSTRAINT github_triggers_pkey PRIMARY KEY (id);
 
 
 --
@@ -488,6 +481,14 @@ ALTER TABLE ONLY public.task_jobs
 
 ALTER TABLE ONLY public.task_runs
     ADD CONSTRAINT task_runs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: triggers triggers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.triggers
+    ADD CONSTRAINT triggers_pkey PRIMARY KEY (id);
 
 
 --
@@ -563,6 +564,20 @@ CREATE UNIQUE INDEX task_runs_log_file_index ON public.task_runs USING btree (lo
 
 
 --
+-- Name: triggers_provider_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX triggers_provider_index ON public.triggers USING btree (provider);
+
+
+--
+-- Name: triggers_source_control_repository_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX triggers_source_control_repository_id_index ON public.triggers USING btree (source_control_repository_id);
+
+
+--
 -- Name: users_email_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -584,14 +599,6 @@ CREATE INDEX users_tokens_user_id_index ON public.users_tokens USING btree (user
 
 
 --
--- Name: github_triggers github_triggers_source_control_repository_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.github_triggers
-    ADD CONSTRAINT github_triggers_source_control_repository_id_fkey FOREIGN KEY (source_control_repository_id) REFERENCES public.source_control_repositories(id) ON DELETE CASCADE;
-
-
---
 -- Name: task_events source_control_events_repo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -608,11 +615,19 @@ ALTER TABLE ONLY public.task_jobs
 
 
 --
--- Name: task_runs task_runs_github_trigger_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: task_runs task_runs_trigger_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.task_runs
-    ADD CONSTRAINT task_runs_github_trigger_id_fkey FOREIGN KEY (github_trigger_id) REFERENCES public.github_triggers(id) ON DELETE CASCADE;
+    ADD CONSTRAINT task_runs_trigger_id_fkey FOREIGN KEY (trigger_id) REFERENCES public.triggers(id) ON DELETE CASCADE;
+
+
+--
+-- Name: triggers triggers_source_control_repository_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.triggers
+    ADD CONSTRAINT triggers_source_control_repository_id_fkey FOREIGN KEY (source_control_repository_id) REFERENCES public.source_control_repositories(id) ON DELETE CASCADE;
 
 
 --
@@ -652,3 +667,5 @@ INSERT INTO public."schema_migrations" (version) VALUES (20250505003347);
 INSERT INTO public."schema_migrations" (version) VALUES (20250528005410);
 INSERT INTO public."schema_migrations" (version) VALUES (20250528005704);
 INSERT INTO public."schema_migrations" (version) VALUES (20260112023849);
+INSERT INTO public."schema_migrations" (version) VALUES (20260113025352);
+INSERT INTO public."schema_migrations" (version) VALUES (20260113025743);
