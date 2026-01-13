@@ -74,8 +74,12 @@ defmodule Tisktask.Triggers do
     Map.get(trigger.payload, "after")
   end
 
+  def type(%Trigger{action: nil} = trigger) do
+    trigger.type
+  end
+
   def type(%Trigger{} = trigger) do
-    Path.join(trigger.type, trigger.action || "")
+    Path.join(trigger.type, trigger.action)
   end
 
   def update_remote_status(%Trigger{} = trigger, name, status) do
