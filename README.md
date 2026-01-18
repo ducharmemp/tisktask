@@ -1,18 +1,76 @@
 # Tisktask
 
-To start your Phoenix server:
+**Write code, not executable configuration files.**
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+Tisktask is a CI/CD task orchestration platform that runs containerized jobs triggered by GitHub and Forgejo webhooks. Unlike traditional task runners that lock you into proprietary YAML formats, Tisktask uses conventions over configuration—place executable files in conventional locations and let the engine handle the rest.
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+## Why Tisktask?
 
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
+Traditional CI/CD systems promise simplicity but trap you in:
+- Proprietary configuration formats
+- Scripts embedded in YAML that are impossible to test
+- Shared actions with cryptic syntax errors
+- Walled gardens that sell you compute time
 
-## Learn more
+Tisktask takes a different approach: your build process should be as testable and maintainable as your application code. Use your favorite package manager to share code, write library folders, and structure tasks the way you would structure production software.
 
-* Official website: https://www.phoenixframework.org/
-* Guides: https://hexdocs.pm/phoenix/overview.html
-* Docs: https://hexdocs.pm/phoenix
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
+## How It Works
+
+Place executable files in `.tisktask/{event_type}/` directories:
+
+```
+.tisktask/
+├── push/
+│   ├── test           # Runs on push events
+│   └── build
+├── pull_request/
+│   └── lint           # Runs on PR events
+└── Dockerfile         # Container build file
+```
+
+Tisktask discovers jobs automatically and runs each in an isolated Podman container.
+
+## Getting Started
+
+### Requirements
+
+- Elixir 1.14+
+- PostgreSQL
+- Podman
+
+### Setup
+
+```bash
+# Install dependencies and setup database
+mix setup
+
+# Start the server
+mix phx.server
+```
+
+Visit [localhost:4000](http://localhost:4000) to configure your repositories and webhooks.
+
+## Development
+
+```bash
+# Run tests
+mix test
+
+# Run specific test file
+mix test path/to/test.exs
+
+# Code quality checks
+mix credo      # Static analysis
+mix sobelow    # Security analysis
+
+# Run all precommit checks
+mix precommit
+```
+
+## Documentation
+
+Visit [tisktask.dev](https://tisktask.dev) for full documentation.
+
+## License
+
+See [LICENSE](LICENSE) for details.

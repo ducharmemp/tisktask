@@ -71,7 +71,7 @@ defmodule Tisktask.Triggers do
   end
 
   def head_sha(%Trigger{} = trigger) do
-    Map.get(trigger.payload, "after")
+    Map.get(trigger.payload, "after") || Map.get(trigger.payload, "head_commit", %{})["id"]
   end
 
   def type(%Trigger{action: nil} = trigger) do
@@ -82,22 +82,21 @@ defmodule Tisktask.Triggers do
     Path.join(trigger.type, trigger.action)
   end
 
-  def update_remote_status(%Trigger{} = trigger, name, status) do
+  def update_remote_status(%Trigger{} = trigger, run_id, name, status) do
     repository = repository_for!(trigger)
+    sha = head_sha(trigger)
+    target_url = TisktaskWeb.Endpoint.url() <> "/tasks/#{run_id}"
 
     _response =
       [
         method: :post,
-        base_url: Map.get(repository.raw_attributes, "statuses_url"),
-        path_params: [
-          sha: head_sha(trigger)
-        ],
+        url: Repository.status_url(repository),
+        path_params: [sha: sha],
         path_params_style: :curly,
         auth: {:bearer, repository.api_token},
         json: %{
           state: status,
-          target_url: "https://example.com/build/status",
-          description: "Test description",
+          target_url: target_url,
           context: name
         }
       ]

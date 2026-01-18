@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-set -eou pipefail
+set -eoux pipefail
 
-echo $CI
+redis-cli -s "$TISKTASK_SOCKET_PATH" SPAWNCONTAINER postgres:17 POSTGRES_PASSWORD=postgres
+
 mix test

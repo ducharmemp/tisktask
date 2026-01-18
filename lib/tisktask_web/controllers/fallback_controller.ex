@@ -28,8 +28,4 @@ defmodule TisktaskWeb.FallbackController do
     |> put_view(html: TisktaskWeb.ErrorHTML, json: TisktaskWeb.ErrorJSON)
     |> render(:"404")
   end
-
-  # def call(conn, resp) do
-  #   dbg(resp)
-  # end
 end

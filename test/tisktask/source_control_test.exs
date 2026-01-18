@@ -64,6 +64,55 @@ defmodule Tisktask.SourceControlTest do
     end
   end
 
+  describe "Repository.status_url/1" do
+    alias Tisktask.SourceControl.Repository
+
+    test "returns statuses_url from raw_attributes when present (GitHub)" do
+      repository =
+        build(:source_control_repository,
+          raw_attributes: %{
+            "statuses_url" => "https://api.github.com/repos/owner/repo/statuses/{sha}"
+          }
+        )
+
+      assert Repository.status_url(repository) ==
+               "https://api.github.com/repos/owner/repo/statuses/{sha}"
+    end
+
+    test "constructs status URL from repository URL when statuses_url not present (Forgejo)" do
+      repository =
+        build(:source_control_repository,
+          url: "http://localhost:3000/testuser/tisktask.git",
+          raw_attributes: %{}
+        )
+
+      assert Repository.status_url(repository) ==
+               "http://localhost:3000/api/v1/repos/testuser/tisktask/statuses/{sha}"
+    end
+
+    test "handles Forgejo URL without .git suffix" do
+      repository =
+        build(:source_control_repository,
+          url: "http://localhost:3000/testuser/tisktask",
+          raw_attributes: %{}
+        )
+
+      assert Repository.status_url(repository) ==
+               "http://localhost:3000/api/v1/repos/testuser/tisktask/statuses/{sha}"
+    end
+
+    test "handles Forgejo URL with different host and port" do
+      repository =
+        build(:source_control_repository,
+          url: "https://forgejo.example.com:8443/myorg/myrepo.git",
+          raw_attributes: %{}
+        )
+
+      assert Repository.status_url(repository) ==
+               "https://forgejo.example.com:8443/api/v1/repos/myorg/myrepo/statuses/{sha}"
+    end
+  end
+
   describe "synchronize_from_github!/2" do
     test "it creates a repository with matching github attributes" do
       Req.Test.stub(SourceControl, fn conn ->

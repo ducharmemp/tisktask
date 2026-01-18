@@ -22,14 +22,18 @@ defmodule Tisktask.SourceControl.Repository do
     |> URI.to_string()
   end
 
-  def status_uri(%__MODULE__{} = repository, sha) do
+  def status_url(%__MODULE__{raw_attributes: %{"statuses_url" => statuses_url}}) do
+    statuses_url
+  end
+
+  def status_url(%__MODULE__{} = repository) do
     repository.url
     |> URI.parse()
-    |> Map.put(:scheme, "http")
     |> Map.put(
       :path,
-      "/api/v1/repos/#{owner_for(repository)}/#{name_for(repository)}/statuses/#{sha}"
+      "/api/v1/repos/#{owner_for(repository)}/#{name_for(repository)}/statuses/{sha}"
     )
+    |> URI.to_string()
   end
 
   @doc false

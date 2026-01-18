@@ -112,7 +112,7 @@ defmodule Tisktask.TriggersTest do
     end
   end
 
-  describe "update_remote_status/3" do
+  describe "update_remote_status/4" do
     test "sends correct request to update status" do
       Req.Test.stub(Triggers, &Plug.Conn.send_resp(&1, 201, ""))
 
@@ -130,7 +130,7 @@ defmodule Tisktask.TriggersTest do
           payload: %{"after" => "abc123"}
         )
 
-      response = Triggers.update_remote_status(trigger, "test-status", "success")
+      response = Triggers.update_remote_status(trigger, 123, "test-status", "success")
       assert response.status == 201
     end
   end

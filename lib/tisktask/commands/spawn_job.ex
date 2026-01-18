@@ -6,7 +6,7 @@ defmodule Tisktask.Commands.SpawnJob do
 
   def name, do: @command
 
-  def command(run, _args) do
+  def command(run, _job, _args) do
     _job = Tasks.create_job!(run, %{program_path: "test"})
     {:noreply, :ok}
   end

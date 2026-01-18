@@ -37,6 +37,7 @@ ACCESS_TOKEN=$(podman exec "$CONTAINER_NAME" forgejo admin user generate-access-
   --raw)
 
 echo "Access token created successfully!"
+echo "Remember to reset the token in the DB if you've already got a dev environment running."
 
 echo "Writing access token to ./tmp/forgejo_token..."
 mkdir -p ./tmp
