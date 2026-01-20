@@ -1,4 +1,4 @@
-defmodule TisktaskWeb.Triggers.GithubController do
+defmodule TisktaskWeb.Triggers.ForgejoController do
   use TisktaskWeb, :controller
 
   alias Tisktask.Triggers
@@ -8,7 +8,7 @@ defmodule TisktaskWeb.Triggers.GithubController do
 
   def create(%{req_headers: headers} = conn, payload) do
     trigger_attrs =
-      Trigger.attrs_from_github_event(
+      Trigger.attrs_from_forgejo_event(
         Map.new(headers),
         payload
       )

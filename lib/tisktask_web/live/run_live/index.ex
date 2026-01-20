@@ -7,7 +7,7 @@ defmodule TisktaskWeb.RunLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
         Listing Task runs
         <:actions>
@@ -42,8 +42,19 @@ defmodule TisktaskWeb.RunLive.Index do
               />
             </div>
             <div>{run.status}</div>
-            <div>{run.updated_at}</div>
           </div>
+        </:col>
+        <:col :let={{_id, run}} label="Repository">
+          <div>{run.trigger.source_control_repository.name}</div>
+        </:col>
+        <:col :let={{_id, run}} label="Type">
+          <div>{run.trigger.type}</div>
+        </:col>
+        <:col :let={{_id, run}} label="Action">
+          <div>{run.trigger.action}</div>
+        </:col>
+        <:col :let={{_id, run}} label="Last Update">
+          <div>{run.updated_at}</div>
         </:col>
         <:action :let={{_id, run}}>
           <div class="sr-only">

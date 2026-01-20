@@ -22,6 +22,7 @@ defmodule TisktaskWeb.Router do
     pipe_through(:api)
 
     resources("/triggers/github", Triggers.GithubController)
+    resources("/triggers/forgejo", Triggers.ForgejoController)
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
@@ -53,7 +54,7 @@ defmodule TisktaskWeb.Router do
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
 
-      get("/", RunLive.Index, :index)
+      live("/", RunLive.Index, :index)
       live("/tasks", RunLive.Index, :index)
       live("/tasks/new", RunLive.Form, :new)
       live("/tasks/:id", RunLive.Show, :show)

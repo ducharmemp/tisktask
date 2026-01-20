@@ -3,7 +3,6 @@ defmodule Tisktask.SourceControl do
   import Ecto.Query, warn: false
 
   alias Tisktask.Repo
-  alias Tisktask.SourceControl.GithubRepositoryAttributes
   alias Tisktask.SourceControl.Repository
 
   def list_repositories do
@@ -19,13 +18,6 @@ defmodule Tisktask.SourceControl do
   def create_repository(attrs \\ %{}) do
     %Repository{}
     |> Repository.changeset(attrs)
-    |> Repo.insert()
-  end
-
-  def create_github_attributes(attrs \\ %{}, source_control_repository) do
-    %GithubRepositoryAttributes{}
-    |> GithubRepositoryAttributes.changeset(attrs)
-    |> Ecto.Changeset.put_assoc(:source_control_repository, source_control_repository)
     |> Repo.insert()
   end
 
@@ -50,18 +42,30 @@ defmodule Tisktask.SourceControl do
     clone_url = Map.get(response, "clone_url")
     github_repository_id = Map.get(response, "id")
 
-    with {:ok, repository} <-
-           create_repository(%{name: name, url: clone_url, api_token: api_token}),
-         {:ok, _} <-
-           create_github_attributes(
-             %{
-               raw_attributes: response,
-               github_repository_id: github_repository_id
-             },
-             repository
-           ) do
-      {:ok, repository}
-    end
+    create_repository(%{
+      name: name,
+      url: clone_url,
+      api_token: api_token,
+      external_repository_id: github_repository_id,
+      raw_attributes: response
+    })
+  end
+
+  def synchronize_from_forgejo!(url, api_token) do
+    uri = URI.parse(url)
+    [_, owner, repo] = String.split(uri.path, "/")
+    response = execute_forgejo_request!(uri, owner, repo, api_token)
+    name = Map.get(response, "name")
+    clone_url = Map.get(response, "clone_url")
+    forgejo_repository_id = Map.get(response, "id")
+
+    create_repository(%{
+      name: name,
+      url: clone_url,
+      api_token: api_token,
+      external_repository_id: forgejo_repository_id,
+      raw_attributes: response
+    })
   end
 
   defp execute_github_request!(owner, repo, api_token) do
@@ -75,6 +79,24 @@ defmodule Tisktask.SourceControl do
         auth: {:bearer, api_token}
       ]
       |> Keyword.merge(Application.get_env(:tisktask, :github_req_options, []))
+      |> Req.request!()
+
+    response.body
+  end
+
+  defp execute_forgejo_request!(uri, owner, repo, api_token) do
+    base_url = "#{uri.scheme}://#{uri.host}#{if uri.port, do: ":#{uri.port}", else: ""}"
+
+    response =
+      [
+        base_url: "#{base_url}/api/v1/repos/:owner/:repo",
+        path_params: [
+          owner: owner,
+          repo: repo
+        ],
+        auth: {:bearer, api_token}
+      ]
+      |> Keyword.merge(Application.get_env(:tisktask, :forgejo_req_options, []))
       |> Req.request!()
 
     response.body

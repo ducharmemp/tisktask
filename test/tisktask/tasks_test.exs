@@ -19,7 +19,7 @@ defmodule Tisktask.TasksTest do
     end
 
     test "create_run/1 with valid data creates a run" do
-      trigger = insert(:github_trigger)
+      trigger = insert(:trigger)
 
       assert {:ok, %Run{} = run} = Tasks.create_run(trigger)
       assert run.status == :staged

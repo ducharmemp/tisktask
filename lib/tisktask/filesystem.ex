@@ -23,17 +23,21 @@ defmodule Tisktask.Filesystem do
   end
 
   defp parents_of(path) do
-    path
-    |> Path.split()
-    |> Enum.reduce(
-      [],
-      fn segment, acc ->
-        case acc do
-          [] -> [segment]
-          _ -> [acc |> Enum.at(-1) |> Path.join(segment) | acc]
+    segments =
+      path
+      |> Path.split()
+      |> Enum.reduce(
+        [],
+        fn segment, acc ->
+          case acc do
+            [] -> [segment]
+            _ -> [acc |> Enum.at(-1) |> Path.join(segment) | acc]
+          end
         end
-      end
-    )
+      )
+
+    # Also check the root .tisktask/ directory
+    segments ++ [""]
   end
 
   defp safe_wildcard(directory, subdirs, pattern) when is_list(subdirs) do

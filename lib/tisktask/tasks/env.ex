@@ -15,7 +15,7 @@ defmodule Tisktask.Tasks.Env do
       [key, encode(value)]
     end)
     |> Enum.into(File.stream!(env_file, [:write, :utf8]), fn [key, value] ->
-      "#{key}=\"#{value}\"\n"
+      "#{key}=#{value}\n"
     end)
     |> Stream.run()
   end
@@ -23,7 +23,8 @@ defmodule Tisktask.Tasks.Env do
   def encode(value) do
     value
     |> to_string()
-    |> String.replace("\"", "\\\"")
     |> String.replace("\\", "\\\\")
+    |> String.replace("\n", "\\n")
+    |> String.replace("\r", "\\r")
   end
 end

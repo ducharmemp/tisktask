@@ -42,6 +42,8 @@
             watchman
             claude-code
             gemini-cli
+            jq
+            buildah
           ];
         in
         {

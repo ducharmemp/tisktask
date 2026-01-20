@@ -8,15 +8,14 @@ defmodule Tisktask.Tasks do
   import Ecto.Query, warn: false
 
   alias Tisktask.Repo
-  alias Tisktask.SourceControl.Event
   alias Tisktask.Tasks.Job
   alias Tisktask.Tasks.Run
 
   def list_task_runs do
-    all_task_runs_query() |> Repo.all() |> Repo.preload(:github_trigger)
+    all_task_runs_query() |> Repo.all() |> Repo.preload(trigger: :source_control_repository)
   end
 
-  def get_run!(id), do: all_task_runs_query() |> Repo.get!(id) |> Repo.preload(:github_trigger)
+  def get_run!(id), do: all_task_runs_query() |> Repo.get!(id) |> Repo.preload(trigger: :source_control_repository)
   def get_job!(id), do: Repo.get!(Job, id)
 
   def preload_task_jobs(run) do

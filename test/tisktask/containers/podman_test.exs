@@ -19,63 +19,59 @@ defmodule Tisktask.Containers.PodmanTest do
     {:ok, %{env_file: env_file, socket_path: socket_path}}
   end
 
-  describe "run_job/5" do
+  describe "pipeline" do
     test "successfully runs a container", %{env_file: env_file, socket_path: socket_path} do
-      result =
-        Podman.run_job(
-          "alpine:latest",
-          "/bin/sh",
-          env_file,
-          socket_path
-        )
+      pod_id = Podman.create_pod()
+      container_id = Podman.create_container(pod_id, "alpine:latest", "/bin/sh", env_file, socket_path)
 
-      assert match?({:status, 0}, result)
+      assert :ok = Podman.start_pod(pod_id)
+      Podman.stream_logs(pod_id, fn _ -> nil end)
+      exit_code = Podman.wait_for_container(container_id)
+      Podman.cleanup(pod_id, container_id)
+
+      assert exit_code == 0
     end
 
     test "streams command output", %{env_file: env_file, socket_path: socket_path} do
       {:ok, output_lines} = Agent.start_link(fn -> [] end)
       test_script = "for i in 1 2 3; do echo $i; done"
 
-      result =
-        Podman.run_job(
-          "alpine:latest",
-          "/bin/sh",
-          env_file,
-          socket_path,
-          into: fn line ->
-            Agent.update(output_lines, fn output -> [line | output] end)
-          end,
-          args: ["-c", "#{test_script}"]
-        )
+      pod_id = Podman.create_pod()
+      container_id = Podman.create_container(pod_id, "alpine:latest", "/bin/sh", env_file, socket_path, ["-c", test_script])
 
-      assert match?({:status, 0}, result)
+      Podman.start_pod(pod_id)
+      Podman.stream_logs(pod_id, fn line ->
+        Agent.update(output_lines, fn output -> [line | output] end)
+      end)
+      exit_code = Podman.wait_for_container(container_id)
+      Podman.cleanup(pod_id, container_id)
+
+      assert exit_code == 0
       assert Agent.get(output_lines, & &1) == ["1\n2\n3\n"]
     end
 
     test "handles container run failures", %{env_file: env_file, socket_path: socket_path} do
-      result =
-        Podman.run_job(
-          "alpine:latest",
-          "/bin/sh",
-          env_file,
-          socket_path,
-          args: ["-c", "exit 1"]
-        )
+      pod_id = Podman.create_pod()
+      container_id = Podman.create_container(pod_id, "alpine:latest", "/bin/sh", env_file, socket_path, ["-c", "exit 1"])
 
-      assert match?({:status, 1}, result)
+      Podman.start_pod(pod_id)
+      Podman.stream_logs(pod_id, fn _ -> nil end)
+      exit_code = Podman.wait_for_container(container_id)
+      Podman.cleanup(pod_id, container_id)
+
+      assert exit_code == 1
     end
 
     test "mounts socket correctly", %{env_file: env_file, socket_path: socket_path} do
-      result =
-        Podman.run_job(
-          "alpine:latest",
-          "/bin/ls",
-          env_file,
-          socket_path,
-          args: ["-la", "/etc/tisktask/command.sock"]
-        )
+      pod_id = Podman.create_pod()
+      container_id = Podman.create_container(pod_id, "alpine:latest", "/bin/ls", env_file, socket_path, ["-la", "/etc/tisktask/command.sock"])
 
-      assert match?({:status, 0}, result)
+      Podman.start_pod(pod_id)
+      Podman.stream_logs(pod_id, fn _ -> nil end)
+      exit_code = Podman.wait_for_container(container_id)
+      Podman.cleanup(pod_id, container_id)
+
+      assert exit_code == 0
     end
   end
 end

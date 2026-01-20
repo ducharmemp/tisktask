@@ -14,6 +14,10 @@ defmodule Tisktask.MixProject do
     ]
   end
 
+  def cli do
+    [preferred_envs: [precommit: :test]]
+  end
+
   # Configuration for the OTP application.
   #
   # Type `mix help compile.app` for more information.
@@ -58,7 +62,7 @@ defmodule Tisktask.MixProject do
       {:bandit, "~> 1.5"},
       {:oban, "~> 2.19"},
       {:oban_web, "~> 2.11"},
-      {:igniter, "~> 0.5", only: [:dev]},
+      {:igniter, "~> 0.7", only: [:dev]},
       {:exile, "~> 0.12.0"},
       {:briefly, "~> 0.5"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
@@ -83,7 +87,20 @@ defmodule Tisktask.MixProject do
   defp aliases do
     [
       setup: ["deps.get", "ecto.setup", "assets.setup", "assets.build"],
-      "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
+      "ecto.structure.fixup": [
+        "cmd sed -i '1,7d' priv/repo/structure.sql",
+        "cmd sed -i '/\\unrestrict/d' priv/repo/structure.sql"
+      ],
+      "ecto.dump": ["ecto.dump", "ecto.structure.fixup"],
+      "ecto.migrate": ["ecto.migrate", "ecto.dump"],
+      "ecto.rollback": ["ecto.rollback", "ecto.dump"],
+      "ecto.setup": [
+        "ecto.create",
+        "ecto.load",
+        "ecto.migrate",
+        "ecto.dump",
+        "run priv/repo/seeds.exs"
+      ],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.drop --quiet", "ecto.create --quiet", "ecto.migrate", "test"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
@@ -92,6 +109,13 @@ defmodule Tisktask.MixProject do
         "tailwind tisktask --minify",
         "esbuild tisktask --minify",
         "phx.digest"
+      ],
+      precommit: [
+        "compile --warning-as-errors",
+        "deps.unlock --unused",
+        "format",
+        "test",
+        "credo --strict"
       ]
     ]
   end

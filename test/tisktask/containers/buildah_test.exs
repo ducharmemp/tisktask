@@ -1,7 +1,7 @@
 defmodule Tisktask.Containers.BuildahTest do
   use ExUnit.Case
 
-  alias Tisktask.Buildah
+  alias Tisktask.Containers.Buildah
 
   # Add integration tag since we're interacting with system commands
   @moduletag :integration

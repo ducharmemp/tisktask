@@ -21,4 +21,11 @@ defmodule TisktaskWeb.FallbackController do
     |> put_view(html: TisktaskWeb.ErrorHTML, json: TisktaskWeb.ErrorJSON)
     |> render(:"404")
   end
+
+  def call(conn, {:error, :repository_not_found}) do
+    conn
+    |> put_status(:not_found)
+    |> put_view(html: TisktaskWeb.ErrorHTML, json: TisktaskWeb.ErrorJSON)
+    |> render(:"404")
+  end
 end

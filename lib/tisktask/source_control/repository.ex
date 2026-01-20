@@ -8,10 +8,8 @@ defmodule Tisktask.SourceControl.Repository do
     field :name, :string
     field :url, :string
     field :api_token, :string, redact: true
-
-    has_one(:github_repository_attributes, Tisktask.SourceControl.GithubRepositoryAttributes,
-      foreign_key: :source_control_repository_id
-    )
+    field :external_repository_id, :integer
+    field :raw_attributes, :map
 
     timestamps(type: :utc_datetime)
   end
@@ -24,20 +22,24 @@ defmodule Tisktask.SourceControl.Repository do
     |> URI.to_string()
   end
 
-  def status_uri(%__MODULE__{} = repository, sha) do
+  def status_url(%__MODULE__{raw_attributes: %{"statuses_url" => statuses_url}}) do
+    statuses_url
+  end
+
+  def status_url(%__MODULE__{} = repository) do
     repository.url
     |> URI.parse()
-    |> Map.put(:scheme, "http")
     |> Map.put(
       :path,
-      "/api/v1/repos/#{owner_for(repository)}/#{name_for(repository)}/statuses/#{sha}"
+      "/api/v1/repos/#{owner_for(repository)}/#{name_for(repository)}/statuses/{sha}"
     )
+    |> URI.to_string()
   end
 
   @doc false
   def changeset(repositories, attrs) do
     repositories
-    |> cast(attrs, [:name, :url, :api_token])
+    |> cast(attrs, [:name, :url, :api_token, :external_repository_id, :raw_attributes])
     |> validate_required([:name, :url, :api_token])
   end
 

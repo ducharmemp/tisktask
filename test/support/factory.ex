@@ -3,9 +3,6 @@ defmodule Tisktask.Factory do
   use ExMachina.Ecto, repo: Tisktask.Repo
   use Tisktask.Factories.Tasks.RunFactory
   use Tisktask.Factories.Tasks.JobFactory
-  use Tisktask.Factories.Triggers.GithubFactory
-  use Tisktask.Factories.Triggers.GithubRepositoryFactory
-  use Tisktask.Factories.Triggers.GithubRepositoryAttributesFactory
+  use Tisktask.Factories.Triggers.TriggerFactory
   use Tisktask.Factories.SourceControl.RepositoryFactory
-  use Tisktask.Factories.SourceControl.GithubRepositoryAttributesFactory
 end

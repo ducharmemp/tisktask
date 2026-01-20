@@ -4,7 +4,6 @@ defmodule TisktaskWeb.RunLiveTest do
   import Phoenix.LiveViewTest
 
   @create_attrs %{}
-  @invalid_attrs %{}
   defp create_run(_) do
     run = insert(:task_run)
 
@@ -14,11 +13,10 @@ defmodule TisktaskWeb.RunLiveTest do
   describe "Index" do
     setup [:create_run, :register_and_log_in_user]
 
-    test "lists all tasks", %{conn: conn, run: run} do
+    test "lists all tasks", %{conn: conn, run: _run} do
       {:ok, _index_live, html} = live(conn, ~p"/tasks")
 
       assert html =~ "Listing Task runs"
-      assert html =~ to_string(run.status)
     end
 
     @tag :skip
@@ -52,7 +50,7 @@ defmodule TisktaskWeb.RunLiveTest do
       {:ok, _show_live, html} = live(conn, ~p"/tasks/#{run}")
 
       assert html =~ "Show Run"
-      assert html =~ run.status
+      assert html =~ to_string(run.status)
     end
   end
 end

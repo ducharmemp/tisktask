@@ -6,7 +6,7 @@ defmodule Tisktask.Factories.Tasks.JobFactory do
         %Tisktask.Tasks.Job{
           program_path: "some program path",
           exit_status: 0,
-          log_file: "some log file",
+          log_file: Tisktask.TaskLogs.ensure_log_file!(),
           parent_run: build(:task_run)
         }
       end

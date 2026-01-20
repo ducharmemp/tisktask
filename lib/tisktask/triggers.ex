@@ -3,45 +3,42 @@ defmodule Tisktask.Triggers do
   import Ecto.Query, warn: false
 
   alias Tisktask.Repo
-  alias Tisktask.Triggers.Github
-  alias Tisktask.Triggers.GithubRepository
-  alias Tisktask.Triggers.GithubRepositoryAttributes
+  alias Tisktask.SourceControl.Repository
+  alias Tisktask.Triggers.Trigger
 
-  def create_github_trigger(attrs \\ %{}) do
-    with {:ok, trigger} <- Github.changeset(%Github{}, attrs),
-         repository = repository_for(trigger),
-         {:ok, _} <- trigger |> Github.assoc_repository(repository) |> Repo.insert() do
-      {:ok, trigger}
+  def create_trigger(attrs \\ %{}) do
+    changeset = Trigger.changeset(%Trigger{}, attrs)
+    external_id = Ecto.Changeset.get_field(changeset, :repository_id)
+
+    case find_repository(external_id) do
+      nil ->
+        {:error, :repository_not_found}
+
+      repository ->
+        changeset
+        |> Trigger.assoc_repository(repository)
+        |> Repo.insert()
     end
   end
 
-  def repository_for(%Github{github_repository_id: nil} = trigger) do
-    Repo.get(GithubRepository, trigger.source_control_repository_id)
-  end
+  defp find_repository(nil), do: nil
 
-  def repository_for!(%Github{github_repository_id: nil} = trigger) do
-    Repo.get!(GithubRepository, trigger.source_control_repository_id)
-  end
-
-  def repository_for(%Github{github_repository_id: github_repository_id} = trigger) do
+  defp find_repository(external_id) do
     Repo.one(
-      from r in GithubRepository,
-        join: a in GithubRepositoryAttributes,
-        where: a.github_repository_id == ^github_repository_id,
-        select: r
+      from r in Repository,
+        where: r.external_repository_id == ^external_id
     )
   end
 
-  def repository_for!(%Github{github_repository_id: github_repository_id} = trigger) do
-    Repo.one!(
-      from r in GithubRepository,
-        join: a in GithubRepositoryAttributes,
-        where: a.github_repository_id == ^github_repository_id,
-        select: r
-    )
+  def repository_for(%Trigger{} = trigger) do
+    Repo.get(Repository, trigger.source_control_repository_id)
   end
 
-  def env_for(%Github{} = trigger) do
+  def repository_for!(%Trigger{} = trigger) do
+    Repo.get!(Repository, trigger.source_control_repository_id)
+  end
+
+  def env_for(%Trigger{provider: "github"} = trigger) do
     repository = repository_for!(trigger)
 
     %{
@@ -53,38 +50,53 @@ defmodule Tisktask.Triggers do
     }
   end
 
-  def clone_uri(%GithubRepository{} = repo) do
-    GithubRepository.clone_uri(repo)
+  def env_for(%Trigger{provider: "forgejo"} = trigger) do
+    repository = repository_for!(trigger)
+
+    %{
+      CI: "true",
+      TISKTASK_FORGEJO_EVENT: trigger.type,
+      TISKTASK_FORGEJO_ACTION: trigger.action,
+      TISKTASK_FORGEJO_SHA: head_sha(trigger),
+      TISKTASK_FORGEJO_REPOSITORY: repository.name
+    }
   end
 
-  def repository_name(%GithubRepository{name: name}) do
+  def clone_uri(%Repository{} = repo) do
+    Repository.clone_uri(repo)
+  end
+
+  def repository_name(%Repository{name: name}) do
     name
   end
 
-  def head_sha(%Github{} = trigger) do
-    Map.get(trigger.payload, "after")
+  def head_sha(%Trigger{} = trigger) do
+    Map.get(trigger.payload, "after") || Map.get(trigger.payload, "head_commit", %{})["id"]
   end
 
-  def type(%Github{} = trigger) do
+  def type(%Trigger{action: nil} = trigger) do
+    trigger.type
+  end
+
+  def type(%Trigger{} = trigger) do
     Path.join(trigger.type, trigger.action)
   end
 
-  def update_remote_status(%Github{} = trigger, name, status) do
-    repository = trigger |> repository_for!() |> Repo.preload(:github_repository_attributes)
+  def update_remote_status(%Trigger{} = trigger, run_id, name, status) do
+    repository = repository_for!(trigger)
+    sha = head_sha(trigger)
+    target_url = TisktaskWeb.Endpoint.url() <> "/tasks/#{run_id}"
 
-    response =
+    _response =
       [
         method: :post,
-        base_url: Map.get(repository.github_repository_attributes.raw_attributes, "statuses_url"),
-        path_params: [
-          sha: head_sha(trigger)
-        ],
+        url: Repository.status_url(repository),
+        path_params: [sha: sha],
         path_params_style: :curly,
         auth: {:bearer, repository.api_token},
         json: %{
           state: status,
-          target_url: "https://example.com/build/status",
-          description: "Test description",
+          target_url: target_url,
           context: name
         }
       ]
