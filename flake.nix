@@ -1,5 +1,5 @@
 {
-  description = "My Phoenix application";
+  description = "Tisktask - CI/CD task orchestration platform";
 
   inputs = {
     beam-flakes = {
@@ -16,6 +16,7 @@
       beam-flakes,
       flake-parts,
       nixpkgs,
+      self,
       ...
     }:
     flake-parts.lib.mkFlake { inherit inputs; } {
@@ -27,8 +28,16 @@
         "x86_64-linux"
       ];
 
+      flake = {
+        # NixOS module for deploying Tisktask as a service
+        nixosModules = {
+          default = self.nixosModules.tisktask;
+          tisktask = import ./nix/module.nix;
+        };
+      };
+
       perSystem =
-        { config, pkgs, ... }:
+        { config, pkgs, system, ... }:
         let
           # Needed everywhere
           basePackages = with pkgs; [
@@ -56,6 +65,10 @@
             versions = {
               fromToolVersions = ./.tool-versions;
             };
+          };
+
+          packages = {
+            tisktask = pkgs.callPackage ./nix/package.nix { };
           };
 
           formatter = pkgs.nixfmt-rfc-style;
