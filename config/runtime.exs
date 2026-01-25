@@ -21,12 +21,36 @@ if System.get_env("PHX_SERVER") do
 end
 
 if config_env() == :prod do
-  database_url =
-    System.get_env("DATABASE_URL") ||
-      raise """
-      environment variable DATABASE_URL is missing.
-      For example: ecto://USER:PASS@HOST/DATABASE
-      """
+  database_url = System.get_env("DATABASE_URL")
+  database_socket_dir = System.get_env("DATABASE_SOCKET_DIR")
+  database_name = System.get_env("DATABASE_NAME", "tisktask")
+  database_user = System.get_env("DATABASE_USER", "tisktask")
+
+  repo_config =
+    cond do
+      database_socket_dir ->
+        [
+          username: database_user,
+          database: database_name,
+          socket_dir: database_socket_dir,
+          pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
+        ]
+
+      database_url ->
+        [
+          url: database_url,
+          pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
+        ]
+
+      true ->
+        raise """
+        Database configuration missing.
+        Set either DATABASE_URL or DATABASE_SOCKET_DIR.
+        For example:
+          DATABASE_URL=ecto://USER:PASS@HOST/DATABASE
+          DATABASE_SOCKET_DIR=/run/postgresql
+        """
+    end
 
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
@@ -46,12 +70,7 @@ if config_env() == :prod do
   port = String.to_integer(System.get_env("PORT") || "4000")
 
   config :tisktask, Tisktask.Repo,
-    # ssl: true,
-    url: database_url,
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
-    # For machines with several cores, consider starting multiple pools of `pool_size`
-    # pool_count: 4,
-    socket_options: maybe_ipv6
+    Keyword.merge(repo_config, socket_options: maybe_ipv6)
 
   config :tisktask, TisktaskWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],

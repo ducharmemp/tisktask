@@ -1,28 +1,5 @@
 {
   "nodes": {
-    "beam-flakes": {
-      "inputs": {
-        "flake-parts": [
-          "flake-parts"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1768335185,
-        "narHash": "sha256-mYiFv4jF1Wnl9gs0YpuVgyJXiYy6mrwb9QfMOsBFfrc=",
-        "owner": "elixir-tools",
-        "repo": "nix-beam-flakes",
-        "rev": "cc2fe20ee00095150492807723a2f258544f783c",
-        "type": "github"
-      },
-      "original": {
-        "owner": "elixir-tools",
-        "repo": "nix-beam-flakes",
-        "type": "github"
-      }
-    },
     "flake-parts": {
       "inputs": {
         "nixpkgs-lib": "nixpkgs-lib"
@@ -74,7 +51,6 @@
     },
     "root": {
       "inputs": {
-        "beam-flakes": "beam-flakes",
         "flake-parts": "flake-parts",
         "nixpkgs": "nixpkgs"
       }

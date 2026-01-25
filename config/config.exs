@@ -9,7 +9,7 @@ import Config
 
 # Configure esbuild (the version is required)
 config :esbuild,
-  version: "0.17.11",
+  version: "0.25.5",
   tisktask: [
     args:
       ~w(js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/*),
@@ -27,7 +27,7 @@ config :phoenix, :json_library, Jason
 
 # Configure tailwind (the version is required)
 config :tailwind,
-  version: "4.0.9",
+  version: "4.1.18",
   tisktask: [
     args: ~w(
       --input=assets/css/app.css
