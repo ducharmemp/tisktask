@@ -9,7 +9,6 @@ defmodule Tisktask.Commands.SocketListener do
   alias Tisktask.Tasks.Job
   alias Tisktask.Tasks.Run
 
-  @socket_path "data/socket"
   @commands %{
     SpawnJob.name() => SpawnJob,
     SpawnContainer.name() => SpawnContainer,
@@ -18,9 +17,13 @@ defmodule Tisktask.Commands.SocketListener do
 
   @doc false
   def start_link(%Run{} = run, %Job{} = job, commands \\ @commands) do
+    socket_dir = 
+      :tisktask
+      |> Application.get_env(:state_dir, "data")
+      |> Path.join("socket")
+    File.mkdir_p!(socket_dir)
     socket_name = UUID.uuid4(:hex)
-    socket_path = Path.join(@socket_path, socket_name)
-    socket_path = Path.expand(socket_path, File.cwd!())
+    socket_path = Path.join(socket_dir, socket_name)
 
     {:ok, pid} =
       ThousandIsland.start_link(
@@ -60,6 +63,7 @@ defmodule Tisktask.Commands.SocketListener do
 
   def handle_info(msg, {socket, state}) do
     require Logger
+
     Logger.debug("SocketListener received unexpected message: #{inspect(msg)}")
     {:noreply, {socket, state}}
   end

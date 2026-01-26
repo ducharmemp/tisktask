@@ -37,12 +37,16 @@ defmodule Tisktask.Containers.PodmanTest do
       test_script = "for i in 1 2 3; do echo $i; done"
 
       pod_id = Podman.create_pod()
-      container_id = Podman.create_container(pod_id, "alpine:latest", "/bin/sh", env_file, socket_path, ["-c", test_script])
+
+      container_id =
+        Podman.create_container(pod_id, "alpine:latest", "/bin/sh", env_file, socket_path, ["-c", test_script])
 
       Podman.start_pod(pod_id)
+
       Podman.stream_logs(pod_id, fn line ->
         Agent.update(output_lines, fn output -> [line | output] end)
       end)
+
       exit_code = Podman.wait_for_container(container_id)
       Podman.cleanup(pod_id, container_id)
 
@@ -64,7 +68,12 @@ defmodule Tisktask.Containers.PodmanTest do
 
     test "mounts socket correctly", %{env_file: env_file, socket_path: socket_path} do
       pod_id = Podman.create_pod()
-      container_id = Podman.create_container(pod_id, "alpine:latest", "/bin/ls", env_file, socket_path, ["-la", "/etc/tisktask/command.sock"])
+
+      container_id =
+        Podman.create_container(pod_id, "alpine:latest", "/bin/ls", env_file, socket_path, [
+          "-la",
+          "/etc/tisktask/command.sock"
+        ])
 
       Podman.start_pod(pod_id)
       Podman.stream_logs(pod_id, fn _ -> nil end)

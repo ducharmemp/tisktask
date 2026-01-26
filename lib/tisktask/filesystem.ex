@@ -1,9 +1,10 @@
 defmodule Tisktask.Filesystem do
   @moduledoc false
   def build_file_for(directory, event) do
+    search_paths = parents_of(event)
+
     build_files =
-      event
-      |> parents_of()
+      search_paths
       |> Enum.reduce([], fn parent, acc ->
         case safe_wildcard(directory, [parent], "{Dockerfile,Containerfile}*") do
           [] -> acc
@@ -11,7 +12,14 @@ defmodule Tisktask.Filesystem do
         end
       end)
 
-    hd(build_files)
+    case build_files do
+      [] ->
+        searched = Enum.map(search_paths, &Path.join([directory, ".tisktask", &1]))
+        raise "No Dockerfile or Containerfile found. Searched in: #{inspect(searched)}"
+
+      files ->
+        hd(files)
+    end
   end
 
   def all_jobs_for(directory, event) do
@@ -42,13 +50,7 @@ defmodule Tisktask.Filesystem do
 
   defp safe_wildcard(directory, subdirs, pattern) when is_list(subdirs) do
     path = Path.join([".tisktask"] ++ subdirs)
-
-    case Path.safe_relative(path, directory) do
-      {:ok, sanitized_path} ->
-        Path.wildcard(Path.join([sanitized_path, pattern]))
-
-      _ ->
-        []
-    end
+    {:ok, sanitized_path} = Path.safe_relative(path, directory)
+    Path.wildcard(Path.join([directory, sanitized_path, pattern]))
   end
 end

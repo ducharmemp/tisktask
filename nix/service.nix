@@ -30,12 +30,21 @@ let
     "${appName}" = {
       isNormalUser = true;
       home = workingDirectory;
-      extraGroups = [ "uploads" ];
+      extraGroups = [ "uploads" "podman" "shadow" ];
       homeMode = "755";
+      # Required for rootless podman/buildah user namespace mapping
+      subUidRanges = [{ startUid = 100000; count = 65536; }];
+      subGidRanges = [{ startGid = 100000; count = 65536; }];
     };
   };
 
-  path = [ pkgs.bash ] ++ cfg.runtimePackages;
+  path = [
+    "/run/wrappers"  # NixOS security wrappers with setuid newuidmap/newgidmap
+    pkgs.bash
+    pkgs.git
+    pkgs.podman
+    pkgs.buildah
+  ] ++ cfg.runtimePackages;
 
   environment = [
     "PHX_SERVER=true"
@@ -99,11 +108,15 @@ let
           User = appName;
           Group = "users";
           Restart = "on-failure";
+          Delegate = true;
           RestartSec = 5;
           StartLimitBurst = 3;
           WorkingDirectory = workingDirectory;
           Environment = environment;
           EnvironmentFile = cfg.environmentFile;
+          # Persistent state directory for task logs and other data
+          # systemd creates /var/lib/tisktask and sets STATE_DIRECTORY env var
+          StateDirectory = appName;
       };
     };
   };

@@ -15,9 +15,16 @@ defmodule Tisktask.SourceControl.Repository do
   end
 
   def clone_uri(%__MODULE__{} = repository) do
-    repository.url
-    |> URI.parse()
-    |> Map.put(:scheme, "http")
+    uri = URI.parse(repository.url)
+
+    scheme =
+      case uri.port do
+        443 -> "https"
+        _ -> "http"
+      end
+
+    uri
+    |> Map.put(:scheme, scheme)
     |> Map.put(:userinfo, "x-access-token:#{repository.api_token}")
     |> URI.to_string()
   end

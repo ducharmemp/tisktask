@@ -40,6 +40,8 @@
               users.users = serviceLib.users;
               services.postgresql = serviceLib.postgresql;
               networking.firewall = serviceLib.firewall;
+              virtualisation.podman.enable = true;
+              virtualisation.containers.registries.search = [ "docker.io" ];
             };
           };
 

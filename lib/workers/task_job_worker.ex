@@ -1,6 +1,6 @@
 defmodule Workers.TaskJobWorker do
   @moduledoc false
-  use Oban.Worker, queue: :default, max_attempts: 1
+  use Oban.Worker, queue: :default, max_attempts: 2
 
   alias Tisktask.Commands
   alias Tisktask.Containers.Podman

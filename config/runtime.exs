@@ -7,6 +7,12 @@ import Config
 # any compile-time configuration in here, as it won't be applied.
 # The block below contains prod specific runtime configuration.
 
+config :tisktask,
+       :state_dir,
+       System.get_env("TISKTASK_STATE_DIR") ||
+         System.get_env("STATE_DIRECTORY") ||
+         Path.expand("data")
+
 # ## Using releases
 #
 # If you use `mix release`, you need to explicitly enable the server
@@ -69,8 +75,7 @@ if config_env() == :prod do
   host = System.get_env("PHX_HOST") || "example.com"
   port = String.to_integer(System.get_env("PORT") || "4000")
 
-  config :tisktask, Tisktask.Repo,
-    Keyword.merge(repo_config, socket_options: maybe_ipv6)
+  config :tisktask, Tisktask.Repo, Keyword.put(repo_config, :socket_options, maybe_ipv6)
 
   config :tisktask, TisktaskWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],

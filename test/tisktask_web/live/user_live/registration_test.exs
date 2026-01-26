@@ -36,19 +36,25 @@ defmodule TisktaskWeb.UserLive.RegistrationTest do
   end
 
   describe "register user" do
-    test "creates account but does not log in", %{conn: conn} do
+    test "creates account with email and password and redirects to login", %{conn: conn} do
       {:ok, lv, _html} = live(conn, ~p"/users/register")
 
       email = unique_user_email()
-      form = form(lv, "#registration_form", user: valid_user_attributes(email: email))
+      password = valid_user_password()
 
       {:ok, _lv, html} =
-        form
+        lv
+        |> form("#registration_form",
+          user: %{
+            "email" => email,
+            "password" => password,
+            "password_confirmation" => password
+          }
+        )
         |> render_submit()
         |> follow_redirect(conn, ~p"/users/log-in")
 
-      assert html =~
-               ~r/An email was sent to .*, please access it to confirm your account/
+      assert html =~ "Account created successfully"
     end
 
     test "renders errors for duplicated email", %{conn: conn} do
@@ -59,11 +65,41 @@ defmodule TisktaskWeb.UserLive.RegistrationTest do
       result =
         lv
         |> form("#registration_form",
-          user: %{"email" => user.email}
+          user: %{"email" => user.email, "password" => valid_user_password()}
         )
         |> render_submit()
 
       assert result =~ "has already been taken"
+    end
+
+    test "renders errors for password too short", %{conn: conn} do
+      {:ok, lv, _html} = live(conn, ~p"/users/register")
+
+      result =
+        lv
+        |> form("#registration_form",
+          user: %{"email" => unique_user_email(), "password" => "short"}
+        )
+        |> render_submit()
+
+      assert result =~ "should be at least 12 character"
+    end
+
+    test "renders errors for password confirmation mismatch", %{conn: conn} do
+      {:ok, lv, _html} = live(conn, ~p"/users/register")
+
+      result =
+        lv
+        |> form("#registration_form",
+          user: %{
+            "email" => unique_user_email(),
+            "password" => valid_user_password(),
+            "password_confirmation" => "different_password"
+          }
+        )
+        |> render_submit()
+
+      assert result =~ "does not match password"
     end
   end
 

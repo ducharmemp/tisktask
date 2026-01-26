@@ -14,8 +14,14 @@ defmodule Tisktask.Accounts.User do
     timestamps(type: :utc_datetime)
   end
 
+  def registration_changeset(user, attrs) do
+    user
+    |> email_changeset(attrs)
+    |> password_changeset(attrs)
+  end
+
   @doc """
-  A user changeset for registering or changing the email.
+  A user changeset for changing the email.
 
   It requires the email to change otherwise an error is added.
 

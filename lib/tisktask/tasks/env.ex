@@ -1,7 +1,12 @@
 defmodule Tisktask.Tasks.Env do
   @moduledoc false
   defp new_env_file do
-    Path.expand(Path.join(["data", "env", "#{UUID.uuid4(:hex)}.env"]))
+    env_dir = 
+      :tisktask
+      |> Application.get_env(:state_dir, "data")
+      |> Path.join("env")
+    File.mkdir_p!(env_dir)
+    Path.join(env_dir, "#{UUID.uuid4(:hex)}.env")
   end
 
   def ensure_env_file! do
