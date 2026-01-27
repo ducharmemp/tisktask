@@ -35,6 +35,9 @@ let
       # Required for rootless podman/buildah user namespace mapping
       subUidRanges = [{ startUid = 100000; count = 65536; }];
       subGidRanges = [{ startGid = 100000; count = 65536; }];
+      # Enable lingering so user has a runtime directory without active login
+      # Required for rootless Podman in a system service
+      linger = true;
     };
   };
 
@@ -117,6 +120,9 @@ let
           # Persistent state directory for task logs and other data
           # systemd creates /var/lib/tisktask and sets STATE_DIRECTORY env var
           StateDirectory = appName;
+          # Rootless Podman requires a runtime directory for the user
+          RuntimeDirectory = appName;
+          RuntimeDirectoryMode = "0755";
       };
     };
   };

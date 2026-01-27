@@ -1,18 +1,21 @@
 defmodule Tisktask.Commands.SocketListenerTest do
-  use Tisktask.DataCase, async: true
+  use Tisktask.DataCase, async: false
 
   alias Tisktask.Commands.CommandFixture
   alias Tisktask.Commands.SocketListener
 
   setup do
+    # Allow spawned ThousandIsland processes to access the database
+    Ecto.Adapters.SQL.Sandbox.mode(Tisktask.Repo, {:shared, self()})
     run = insert(:task_run)
+    job = insert(:task_job, parent_run: run)
 
     commands = %{
       CommandFixture.name() => CommandFixture
     }
 
     Phoenix.PubSub.subscribe(Tisktask.PubSub, "tisktask:command")
-    {:ok, _pid, socket_path} = SocketListener.start_link(run, commands)
+    {:ok, _pid, socket_path} = SocketListener.start_link(run, job, commands)
     {:ok, socket} = :gen_tcp.connect({:local, socket_path}, 0, [:binary, active: false])
 
     on_exit(fn ->

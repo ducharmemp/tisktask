@@ -1,10 +1,11 @@
 defmodule Tisktask.Tasks.Env do
   @moduledoc false
   defp new_env_file do
-    env_dir = 
+    env_dir =
       :tisktask
       |> Application.get_env(:state_dir, "data")
       |> Path.join("env")
+
     File.mkdir_p!(env_dir)
     Path.join(env_dir, "#{UUID.uuid4(:hex)}.env")
   end
@@ -26,10 +27,14 @@ defmodule Tisktask.Tasks.Env do
   end
 
   def encode(value) do
-    value
-    |> to_string()
-    |> String.replace("\\", "\\\\")
-    |> String.replace("\n", "\\n")
-    |> String.replace("\r", "\\r")
+    escaped =
+      value
+      |> to_string()
+      |> String.replace("\\", "\\\\")
+      |> String.replace("\"", "\\\"")
+      |> String.replace("\n", "\\n")
+      |> String.replace("\r", "\\r")
+
+    "\"#{escaped}\""
   end
 end

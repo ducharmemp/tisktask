@@ -61,7 +61,7 @@ defmodule Tisktask.TaskLogsTest do
       2024-01-25T12:00:01.000000Z second line
       """)
 
-      logs = TaskLogs.stream_from!(loggable) |> Enum.to_list()
+      logs = loggable |> TaskLogs.stream_from!() |> Enum.to_list()
 
       assert length(logs) == 2
       assert Enum.at(logs, 0).id == "2024-01-25T12:00:00.000000Z"
@@ -76,7 +76,7 @@ defmodule Tisktask.TaskLogsTest do
 
       File.write!(log_file, "2024-01-25T12:00:00.000000Z line with multiple spaces\n")
 
-      [log_entry] = TaskLogs.stream_from!(loggable) |> Enum.to_list()
+      [log_entry] = loggable |> TaskLogs.stream_from!() |> Enum.to_list()
 
       assert log_entry.log == "line with multiple spaces"
     end
@@ -91,7 +91,7 @@ defmodule Tisktask.TaskLogsTest do
       another_malformed_line
       """)
 
-      logs = TaskLogs.stream_from!(loggable) |> Enum.to_list()
+      logs = loggable |> TaskLogs.stream_from!() |> Enum.to_list()
 
       assert length(logs) == 1
       assert Enum.at(logs, 0).log == "valid line"
@@ -104,7 +104,7 @@ defmodule Tisktask.TaskLogsTest do
       # Create an empty file
       File.write!(log_file, "")
 
-      logs = TaskLogs.stream_from!(loggable) |> Enum.to_list()
+      logs = loggable |> TaskLogs.stream_from!() |> Enum.to_list()
 
       assert logs == []
     end

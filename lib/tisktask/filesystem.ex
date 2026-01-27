@@ -4,8 +4,7 @@ defmodule Tisktask.Filesystem do
     search_paths = parents_of(event)
 
     build_files =
-      search_paths
-      |> Enum.reduce([], fn parent, acc ->
+      Enum.reduce(search_paths, [], fn parent, acc ->
         case safe_wildcard(directory, [parent], "{Dockerfile,Containerfile}*") do
           [] -> acc
           files -> acc ++ files
@@ -28,6 +27,7 @@ defmodule Tisktask.Filesystem do
     |> Enum.reject(fn path ->
       (path |> Path.rootname() |> Path.basename()) in ["Containerfile", "Dockerfile"]
     end)
+    |> Enum.map(&Path.relative_to(&1, directory))
   end
 
   defp parents_of(path) do

@@ -206,8 +206,8 @@ CREATE TABLE public.task_jobs (
     inserted_at timestamp(0) without time zone NOT NULL,
     updated_at timestamp(0) without time zone NOT NULL,
     log_file character varying(255) NOT NULL,
-    pod_id character varying(255),
-    container_id character varying(255)
+    pod_id text,
+    container_id text
 );
 
 
@@ -672,3 +672,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20260112023849);
 INSERT INTO public."schema_migrations" (version) VALUES (20260113025352);
 INSERT INTO public."schema_migrations" (version) VALUES (20260113025743);
 INSERT INTO public."schema_migrations" (version) VALUES (20260118224851);
+INSERT INTO public."schema_migrations" (version) VALUES (20260127031901);
