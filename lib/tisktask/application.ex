@@ -8,11 +8,13 @@ defmodule Tisktask.Application do
   @impl true
   def start(_type, _args) do
     Oban.Telemetry.attach_default_logger()
+    Tisktask.Tasks.trap_shutdown_signal()
 
     children = [
       TisktaskWeb.Telemetry,
       Tisktask.Repo,
       {DNSCluster, query: Application.get_env(:tisktask, :dns_cluster_query) || :ignore},
+      %{id: :pg, start: {:pg, :start_link, [:tisktask]}},
       {Oban, Application.fetch_env!(:tisktask, Oban)},
       {Phoenix.PubSub, name: Tisktask.PubSub},
       {Task.Supervisor, name: Tisktask.TaskSupervisor},

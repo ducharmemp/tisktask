@@ -11,6 +11,16 @@ defmodule Tisktask.Tasks do
   alias Tisktask.Tasks.Job
   alias Tisktask.Tasks.Run
 
+  def trap_shutdown_signal do
+    System.trap_signal(:sigterm, fn ->
+      :tisktask
+      |> :pg.get_members(:runners)
+      |> Enum.each(&send(&1, :shutdown))
+
+      :ok
+    end)
+  end
+
   def list_task_runs do
     all_task_runs_query() |> Repo.all() |> Repo.preload(trigger: :source_control_repository)
   end
