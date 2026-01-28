@@ -56,7 +56,6 @@ defmodule TisktaskWeb.Router do
 
       live("/", RunLive.Index, :index)
       live("/tasks", RunLive.Index, :index)
-      live("/tasks/new", RunLive.Form, :new)
       live("/tasks/:id", RunLive.Show, :show)
 
       live("/repositories", RepositoryLive.Index, :index)

@@ -10,11 +10,6 @@ defmodule TisktaskWeb.RunLive.Index do
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.header>
         Listing Task runs
-        <:actions>
-          <.button variant="primary" navigate={~p"/tasks/new"}>
-            <.icon name="hero-plus" /> New Run
-          </.button>
-        </:actions>
       </.header>
 
       <.table
