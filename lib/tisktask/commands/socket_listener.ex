@@ -16,15 +16,16 @@ defmodule Tisktask.Commands.SocketListener do
   }
 
   @doc false
-  def start_link(%Run{} = run, %Job{} = job, commands \\ @commands) do
-    socket_dir =
-      :tisktask
-      |> Application.get_env(:state_dir, "data")
-      |> Path.join("socket")
+  def start_link(%Run{} = run, %Job{} = job, opts \\ []) do
+    commands = Keyword.get(opts, :commands, @commands)
+    socket_dir = Keyword.get_lazy(opts, :socket_dir, &generate_socket_dir/0)
+    socket_path = Path.join(socket_dir, "command.sock")
 
+    # Ensure directory exists
     File.mkdir_p!(socket_dir)
-    socket_name = UUID.uuid4(:hex)
-    socket_path = Path.join(socket_dir, socket_name)
+
+    # Remove stale socket file if it exists (from previous run)
+    File.rm(socket_path)
 
     {:ok, pid} =
       ThousandIsland.start_link(
@@ -36,7 +37,19 @@ defmodule Tisktask.Commands.SocketListener do
 
     File.chmod!(socket_path, 0o766)
 
-    {:ok, pid, socket_path}
+    {:ok, pid, socket_dir}
+  end
+
+  defp generate_socket_dir do
+    base_dir =
+      :tisktask
+      |> Application.get_env(:state_dir, "data")
+      |> Path.join("socket")
+
+    dir_name = UUID.uuid4(:hex)
+    socket_dir = Path.join(base_dir, dir_name)
+    File.mkdir_p!(socket_dir)
+    socket_dir
   end
 
   @impl ThousandIsland.Handler

@@ -10,6 +10,7 @@ defmodule Tisktask.Tasks.Job do
     field :log_file, :string
     field :pod_id, :string
     field :container_id, :string
+    field :command_socket_path, :string
     belongs_to(:parent_run, Tisktask.Tasks.Run, foreign_key: :task_run_id)
 
     timestamps(type: :utc_datetime)
@@ -18,7 +19,7 @@ defmodule Tisktask.Tasks.Job do
   @doc false
   def changeset(task_job, attrs) do
     task_job
-    |> cast(attrs, [:program_path, :exit_status, :log_file, :pod_id, :container_id])
+    |> cast(attrs, [:program_path, :exit_status, :log_file, :pod_id, :container_id, :command_socket_path])
     |> validate_required([:program_path, :log_file])
     |> unique_constraint(:log_file)
   end

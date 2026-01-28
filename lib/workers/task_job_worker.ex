@@ -39,7 +39,8 @@ defmodule Workers.TaskJobWorker do
       "pending"
     )
 
-    command_socket = Commands.spawn_command_listeners(task_run, task_job)
+    socket_dir = Commands.spawn_command_listeners(task_run, task_job)
+    task_job = Tasks.update_job!(task_job, %{command_socket_path: socket_dir})
 
     env_file = Tasks.Env.ensure_env_file!()
 
@@ -54,7 +55,7 @@ defmodule Workers.TaskJobWorker do
     pod_id = Podman.create_pod()
     task_job = Tasks.update_job!(task_job, %{pod_id: pod_id})
 
-    container_id = Podman.create_container(pod_id, image, task_job.program_path, env_file, command_socket)
+    container_id = Podman.create_container(pod_id, image, task_job.program_path, env_file, socket_dir)
     task_job = Tasks.update_job!(task_job, %{container_id: container_id})
 
     Podman.start_pod(pod_id)
@@ -74,6 +75,9 @@ defmodule Workers.TaskJobWorker do
   end
 
   defp resume_job(task_run, task_job) do
+    # Recreate socket listener in the same directory before unpausing
+    Commands.spawn_command_listeners(task_run, task_job, socket_dir: task_job.command_socket_path)
+
     case Podman.unpause_pod(task_job.pod_id) do
       :ok ->
         Task.start(fn -> Podman.stream_logs(task_job.pod_id, TaskLogs.stream_to(task_job)) end)
