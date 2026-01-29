@@ -6,10 +6,10 @@ defmodule Tisktask.Containers.Podman do
     String.trim(pod_id)
   end
 
-  def create_container(pod_id, image, hook_path, env_file, socket_dir, args \\ []) do
+  def create_container(pod_id, image, hook_path, env_file, volume, args \\ []) do
     {container_id, 0} =
       ["create", "--env-file", env_file, "--pod", pod_id]
-      |> Enum.concat(["--volume", "#{socket_dir}:/etc/tisktask:rw,Z"])
+      |> Enum.concat(["--volume", "#{volume}:/etc/tisktask/command.sock:rw,Z"])
       |> Enum.concat([image, hook_path])
       |> Enum.concat(Enum.map(args, &to_string/1))
       |> then(&System.cmd(podman_exe(), &1, stderr_to_stdout: true))

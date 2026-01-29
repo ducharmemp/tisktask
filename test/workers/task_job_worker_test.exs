@@ -84,7 +84,6 @@ defmodule Workers.TaskJobWorkerTest do
           parent_run: task_run,
           pod_id: "existing-pod-id",
           container_id: "existing-container-id",
-          command_socket_path: "/tmp/test-socket-#{System.unique_integer()}",
           exit_status: nil
         )
 
@@ -111,7 +110,6 @@ defmodule Workers.TaskJobWorkerTest do
           parent_run: task_run,
           pod_id: "broken-pod-id",
           container_id: "broken-container-id",
-          command_socket_path: "/tmp/test-socket-#{System.unique_integer()}",
           exit_status: nil
         )
 

@@ -15,13 +15,12 @@ defmodule Tisktask.Commands.SocketListenerTest do
     }
 
     Phoenix.PubSub.subscribe(Tisktask.PubSub, "tisktask:command")
-    {:ok, _pid, socket_dir} = SocketListener.start_link(run, job, commands: commands)
-    socket_path = Path.join(socket_dir, "command.sock")
+    {:ok, _pid, socket_path} = SocketListener.start_link(run, job, commands)
     {:ok, socket} = :gen_tcp.connect({:local, socket_path}, 0, [:binary, active: false])
 
     on_exit(fn ->
       :gen_tcp.close(socket)
-      File.rm_rf(socket_dir)
+      File.rm(socket_path)
     end)
 
     {:ok, %{socket: socket}}
