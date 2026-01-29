@@ -22,27 +22,6 @@ defmodule Tisktask.Containers.Podman do
     :ok
   end
 
-  def pause_pod(pod_id) do
-    case System.cmd(podman_exe(), ["pod", "pause", pod_id], stderr_to_stdout: true) do
-      {_, 0} -> :ok
-      {err, _} -> {:error, String.trim(err)}
-    end
-  end
-
-  def unpause_pod(pod_id) do
-    case System.cmd(podman_exe(), ["pod", "unpause", pod_id], stderr_to_stdout: true) do
-      {_, 0} -> :ok
-      {err, _} -> {:error, String.trim(err)}
-    end
-  end
-
-  def pod_exists?(pod_id) do
-    case System.cmd(podman_exe(), ["pod", "exists", pod_id], stderr_to_stdout: true) do
-      {_, 0} -> true
-      _ -> false
-    end
-  end
-
   def run_sidecar(pod_id, image, env_file \\ nil) do
     args = ["run", "-d", "--pod", pod_id]
     args = if env_file, do: args ++ ["--env-file", env_file], else: args
@@ -66,34 +45,6 @@ defmodule Tisktask.Containers.Podman do
   def wait_for_container(container_id) do
     {exit_code_str, 0} = System.cmd(podman_exe(), ["wait", container_id])
     exit_code_str |> String.trim() |> String.to_integer()
-  end
-
-  def wait_for_container_interruptible(container_id, interval \\ 500) do
-    receive do
-      :shutdown -> {:interrupted, :shutdown}
-    after
-      interval ->
-        case container_status(container_id) do
-          {:exited, code} -> {:ok, code}
-          :running -> wait_for_container_interruptible(container_id, interval)
-          :not_found -> {:error, :not_found}
-        end
-    end
-  end
-
-  defp container_status(container_id) do
-    args = ["inspect", container_id, "--format", "{{.State.Status}} {{.State.ExitCode}}"]
-
-    case System.cmd(podman_exe(), args, stderr_to_stdout: true) do
-      {output, 0} ->
-        case output |> String.trim() |> String.split(" ") do
-          ["exited", code] -> {:exited, String.to_integer(code)}
-          _ -> :running
-        end
-
-      _ ->
-        :not_found
-    end
   end
 
   def cleanup(pod_id, container_id) do
