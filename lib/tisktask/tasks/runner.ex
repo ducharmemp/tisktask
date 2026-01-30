@@ -1,0 +1,188 @@
+defmodule Tisktask.Tasks.Runner do
+  @moduledoc """
+  GenServer that manages the lifecycle of a task job execution.
+
+  The runner transitions through the following stages using handle_continue:
+  - `:initializing` - Setting up environment and command socket
+  - `:creating_pod` - Creating Podman pod and container
+  - `:running` - Pod started, streaming logs
+  - `:waiting` - Waiting for container to complete
+  - `:cleanup` - Removing pod and container
+  - `:completed` - Job finished, reply sent to caller
+  """
+  use GenServer
+
+  alias Tisktask.Commands
+  alias Tisktask.Containers.Podman
+  alias Tisktask.TaskLogs
+  alias Tisktask.Tasks
+  alias Tisktask.Triggers
+
+  defstruct [
+    :task_run,
+    :task_job,
+    :repository_name,
+    :sha,
+    :image,
+    :env_file,
+    :command_socket,
+    :pod_id,
+    :container_id,
+    :exit_status,
+    :caller,
+    :wait_ref,
+    stage: :initialized
+  ]
+
+  # Client API
+
+  def start_link(opts) do
+    task_run_id = Keyword.fetch!(opts, :task_run_id)
+    task_job_id = Keyword.fetch!(opts, :task_job_id)
+    GenServer.start_link(__MODULE__, {task_run_id, task_job_id}, opts)
+  end
+
+  def run(pid) do
+    GenServer.call(pid, :run, :infinity)
+  end
+
+  # Server Callbacks
+
+  @impl true
+  def init({task_run_id, task_job_id}) do
+    task_run = Tasks.get_run!(task_run_id)
+    task_job = Tasks.get_job!(task_job_id)
+
+    repository = Triggers.repository_for!(task_run.trigger)
+    repository_name = Triggers.repository_name(repository)
+    sha = Triggers.head_sha(task_run.trigger)
+
+    state = %__MODULE__{
+      task_run: task_run,
+      task_job: task_job,
+      repository_name: repository_name,
+      sha: sha,
+      image: "localhost/#{repository_name}:#{sha}",
+      stage: :initialized
+    }
+
+    {:ok, state}
+  end
+
+  @impl true
+  def handle_call(:run, from, %{stage: :initialized} = state) do
+    {:noreply, %{state | caller: from}, {:continue, :initializing}}
+  end
+
+  # State: initializing
+  # Sets up environment file and command socket, updates remote status to pending
+  @impl true
+  def handle_continue(:initializing, state) do
+    %{task_run: task_run, task_job: task_job} = state
+
+    Triggers.update_remote_status(
+      task_run.trigger,
+      task_run.id,
+      task_job.program_path,
+      "pending"
+    )
+
+    command_socket = Commands.spawn_command_listeners(task_run, task_job)
+    env_file = Tasks.Env.ensure_env_file!()
+
+    task_run
+    |> Tasks.env_for()
+    |> Map.merge(Triggers.env_for(task_run.trigger))
+    |> Map.put("TISKTASK_SOCKET_PATH", "/run/tisktask/command.sock")
+    |> then(fn mapped -> Tasks.Env.write_env_to(env_file, mapped) end)
+
+    new_state = %{
+      state
+      | command_socket: command_socket,
+        env_file: env_file,
+        stage: :initializing
+    }
+
+    {:noreply, new_state, {:continue, :creating_pod}}
+  end
+
+  # State: creating_pod
+  # Creates Podman pod and container
+  def handle_continue(:creating_pod, state) do
+    %{image: image, task_job: task_job, env_file: env_file, command_socket: command_socket} = state
+
+    pod_id = Podman.create_pod()
+    task_job = Tasks.update_job!(task_job, %{pod_id: pod_id})
+
+    container_id = Podman.create_container(pod_id, image, task_job.program_path, env_file, command_socket)
+    task_job = Tasks.update_job!(task_job, %{container_id: container_id})
+
+    new_state = %{
+      state
+      | pod_id: pod_id,
+        container_id: container_id,
+        task_job: task_job,
+        stage: :creating_pod
+    }
+
+    {:noreply, new_state, {:continue, :running}}
+  end
+
+  # State: running
+  # Starts the pod and begins log streaming
+  def handle_continue(:running, state) do
+    %{pod_id: pod_id, task_job: task_job} = state
+
+    Podman.start_pod(pod_id)
+    Task.start(fn -> Podman.stream_logs(pod_id, TaskLogs.stream_to(task_job)) end)
+
+    {:noreply, %{state | stage: :running}, {:continue, :waiting}}
+  end
+
+  # State: waiting
+  # Starts async wait for container exit
+  def handle_continue(:waiting, state) do
+    %{container_id: container_id} = state
+
+    {:ok, ref} = Podman.wait_for_container_async(container_id)
+
+    {:noreply, %{state | wait_ref: ref, stage: :waiting}}
+  end
+
+  # State: cleanup
+  # Removes pod and container
+  def handle_continue(:cleanup, state) do
+    %{pod_id: pod_id, container_id: container_id} = state
+
+    Podman.cleanup(pod_id, container_id)
+
+    {:noreply, %{state | stage: :cleanup}, {:continue, :completed}}
+  end
+
+  # State: completed
+  # Updates remote status, persists exit status, replies to caller
+  def handle_continue(:completed, state) do
+    %{task_run: task_run, task_job: task_job, exit_status: exit_status, caller: caller} = state
+
+    status = if exit_status == 0, do: "success", else: "failure"
+
+    Triggers.update_remote_status(
+      task_run.trigger,
+      task_run.id,
+      task_job.program_path,
+      status
+    )
+
+    Tasks.update_job!(task_job, %{exit_status: exit_status})
+
+    GenServer.reply(caller, {:ok, exit_status})
+
+    {:noreply, %{state | stage: :completed}}
+  end
+
+  # Handle container exit notification
+  @impl true
+  def handle_info({:container_exited, ref, _container_id, exit_status}, %{wait_ref: ref} = state) do
+    {:noreply, %{state | exit_status: exit_status}, {:continue, :cleanup}}
+  end
+end

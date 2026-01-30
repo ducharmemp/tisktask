@@ -26,7 +26,7 @@ defmodule Tisktask.Containers.PodmanTest do
 
       assert :ok = Podman.start_pod(pod_id)
       Podman.stream_logs(pod_id, fn _ -> nil end)
-      exit_code = Podman.wait_for_container(container_id)
+      exit_code = wait_for_container(container_id)
       Podman.cleanup(pod_id, container_id)
 
       assert exit_code == 0
@@ -47,7 +47,7 @@ defmodule Tisktask.Containers.PodmanTest do
         Agent.update(output_lines, fn output -> [line | output] end)
       end)
 
-      exit_code = Podman.wait_for_container(container_id)
+      exit_code = wait_for_container(container_id)
       Podman.cleanup(pod_id, container_id)
 
       assert exit_code == 0
@@ -60,7 +60,7 @@ defmodule Tisktask.Containers.PodmanTest do
 
       Podman.start_pod(pod_id)
       Podman.stream_logs(pod_id, fn _ -> nil end)
-      exit_code = Podman.wait_for_container(container_id)
+      exit_code = wait_for_container(container_id)
       Podman.cleanup(pod_id, container_id)
 
       assert exit_code == 1
@@ -72,15 +72,23 @@ defmodule Tisktask.Containers.PodmanTest do
       container_id =
         Podman.create_container(pod_id, "alpine:latest", "/bin/ls", env_file, socket_path, [
           "-la",
-          "/etc/tisktask/command.sock"
+          "/run/tisktask/command.sock"
         ])
 
       Podman.start_pod(pod_id)
       Podman.stream_logs(pod_id, fn _ -> nil end)
-      exit_code = Podman.wait_for_container(container_id)
+      exit_code = wait_for_container(container_id)
       Podman.cleanup(pod_id, container_id)
 
       assert exit_code == 0
+    end
+  end
+
+  defp wait_for_container(container_id) do
+    {:ok, ref} = Podman.wait_for_container_async(container_id)
+
+    receive do
+      {:container_exited, ^ref, ^container_id, exit_status} -> exit_status
     end
   end
 end

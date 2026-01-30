@@ -1,64 +1,16 @@
 defmodule Workers.TaskJobWorker do
   @moduledoc false
-  use Oban.Worker, queue: :default, max_attempts: 2
+  use Oban.Worker, queue: :default, max_attempts: 3
 
-  alias Tisktask.Commands
-  alias Tisktask.Containers.Podman
-  alias Tisktask.TaskLogs
-  alias Tisktask.Tasks
-  alias Tisktask.Triggers
+  alias Tisktask.Tasks.Runner
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"task_run_id" => task_run_id, "task_job_id" => task_job_id}}) do
-    task_run = Tasks.get_run!(task_run_id)
-    task_job = Tasks.get_job!(task_job_id)
+    {:ok, pid} = Runner.start_link(task_run_id: task_run_id, task_job_id: task_job_id)
 
-    triggering_repository_name =
-      task_run.trigger |> Triggers.repository_for!() |> Triggers.repository_name()
-
-    triggering_sha = Triggers.head_sha(task_run.trigger)
-
-    Triggers.update_remote_status(
-      task_run.trigger,
-      task_run.id,
-      task_job.program_path,
-      "pending"
-    )
-
-    command_socket = Commands.spawn_command_listeners(task_run, task_job)
-
-    env_file = Tasks.Env.ensure_env_file!()
-
-    task_run
-    |> Tasks.env_for()
-    |> Map.merge(Triggers.env_for(task_run.trigger))
-    |> Map.put("TISKTASK_SOCKET_PATH", "/etc/tisktask/command.sock")
-    |> then(fn mapped -> Tasks.Env.write_env_to(env_file, mapped) end)
-
-    image = "localhost/#{triggering_repository_name}:#{triggering_sha}"
-
-    pod_id = Podman.create_pod()
-    task_job = Tasks.update_job!(task_job, %{pod_id: pod_id})
-
-    container_id = Podman.create_container(pod_id, image, task_job.program_path, env_file, command_socket)
-    task_job = Tasks.update_job!(task_job, %{container_id: container_id})
-
-    Podman.start_pod(pod_id)
-    Task.start(fn -> Podman.stream_logs(pod_id, TaskLogs.stream_to(task_job)) end)
-    exit_status = Podman.wait_for_container(container_id)
-    Podman.cleanup(pod_id, container_id)
-
-    status = if exit_status == 0, do: "success", else: "failure"
-
-    Triggers.update_remote_status(
-      task_run.trigger,
-      task_run.id,
-      task_job.program_path,
-      status
-    )
-
-    Tasks.update_job!(task_job, %{exit_status: exit_status})
-
-    :ok
+    case Runner.run(pid) do
+      {:ok, _exit_status} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
   end
 end
