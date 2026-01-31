@@ -7,7 +7,7 @@ defmodule Tisktask.Tasks.Run do
   alias Tisktask.Triggers.Trigger
 
   schema "task_runs" do
-    field(:status, Ecto.Enum, values: [:staged, :running, :completed, :timeout])
+    field(:status, Ecto.Enum, values: [:staged, :running, :completed, :failed, :timeout])
     field(:log_file, :string)
     field(:any_jobs_failed?, :boolean, default: false, virtual: true)
     has_many(:jobs, Tisktask.Tasks.Job, foreign_key: :task_run_id)

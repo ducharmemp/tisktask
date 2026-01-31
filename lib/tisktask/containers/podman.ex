@@ -18,8 +18,10 @@ defmodule Tisktask.Containers.Podman do
   end
 
   def start_pod(pod_id) do
-    {_, 0} = System.cmd(podman_exe(), ["pod", "start", pod_id], stderr_to_stdout: true)
-    :ok
+    case System.cmd(podman_exe(), ["pod", "start", pod_id], stderr_to_stdout: true) do
+      {_, 0} -> :ok
+      {err, _} -> {:error, String.trim(err)}
+    end
   end
 
   def run_sidecar(pod_id, image, env_file \\ nil) do

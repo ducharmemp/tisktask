@@ -29,6 +29,7 @@ defmodule Tisktask.Tasks.Runner do
     :pod_id,
     :container_id,
     :exit_status,
+    :error,
     :caller,
     :wait_ref,
     stage: :initialized
@@ -133,10 +134,14 @@ defmodule Tisktask.Tasks.Runner do
   def handle_continue(:running, state) do
     %{pod_id: pod_id, task_job: task_job} = state
 
-    Podman.start_pod(pod_id)
-    Task.start(fn -> Podman.stream_logs(pod_id, TaskLogs.stream_to(task_job)) end)
+    case Podman.start_pod(pod_id) do
+      :ok ->
+        Task.start(fn -> Podman.stream_logs(pod_id, TaskLogs.stream_to(task_job)) end)
+        {:noreply, %{state | stage: :running}, {:continue, :waiting}}
 
-    {:noreply, %{state | stage: :running}, {:continue, :waiting}}
+      {:error, reason} ->
+        {:noreply, %{state | error: reason, stage: :running}, {:continue, :cleanup}}
+    end
   end
 
   # State: waiting
@@ -162,9 +167,14 @@ defmodule Tisktask.Tasks.Runner do
   # State: completed
   # Updates remote status, persists exit status, replies to caller
   def handle_continue(:completed, state) do
-    %{task_run: task_run, task_job: task_job, exit_status: exit_status, caller: caller} = state
+    %{task_run: task_run, task_job: task_job, exit_status: exit_status, error: error, caller: caller} = state
 
-    status = if exit_status == 0, do: "success", else: "failure"
+    {status, reply} =
+      cond do
+        error != nil -> {"failure", {:error, error}}
+        exit_status == 0 -> {"success", {:ok, 0}}
+        true -> {"failure", {:ok, exit_status}}
+      end
 
     Triggers.update_remote_status(
       task_run.trigger,
@@ -173,9 +183,9 @@ defmodule Tisktask.Tasks.Runner do
       status
     )
 
-    Tasks.update_job!(task_job, %{exit_status: exit_status})
+    if exit_status, do: Tasks.update_job!(task_job, %{exit_status: exit_status})
 
-    GenServer.reply(caller, {:ok, exit_status})
+    GenServer.reply(caller, reply)
 
     {:noreply, %{state | stage: :completed}}
   end

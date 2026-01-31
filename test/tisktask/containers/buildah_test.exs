@@ -35,7 +35,7 @@ defmodule Tisktask.Containers.BuildahTest do
           into: collector
         )
 
-      assert result == {:status, 0}
+      assert result == {:ok, "test-image:latest"}
     end
 
     test "streams build output to callback", %{build_context: context, dockerfile: dockerfile} do

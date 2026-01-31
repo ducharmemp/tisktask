@@ -70,6 +70,10 @@ defmodule Tisktask.Tasks do
     update_run!(run, %{status: "completed"})
   end
 
+  def fail_run!(%Run{} = run) do
+    update_run!(run, %{status: "failed"})
+  end
+
   def start_run!(%Run{} = run) do
     update_run!(run, %{status: "running"})
   end

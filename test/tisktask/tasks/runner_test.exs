@@ -163,6 +163,32 @@ defmodule Tisktask.Tasks.RunnerTest do
 
       assert_received {:cleanup_called, ^pod_id, ^container_id}
     end
+
+    test "returns error when start_pod fails", ctx do
+      %{task_run: task_run, task_job: task_job} = ctx
+
+      pod_id = "test-pod-123"
+      container_id = "test-container-456"
+      error_message = "script is not executable"
+      test_pid = self()
+
+      stub(Podman, :create_pod, fn -> pod_id end)
+      stub(Podman, :create_container, fn _, _, _, _, _ -> container_id end)
+      stub(Podman, :start_pod, fn _ -> {:error, error_message} end)
+      stub(Podman, :stream_logs, fn _, _ -> :ok end)
+      stub(Podman, :cleanup, fn _, _ -> :ok end)
+
+      stub(Triggers, :update_remote_status, fn _trigger, _run_id, _program_path, status ->
+        send(test_pid, {:status_update, status})
+        :ok
+      end)
+
+      {:ok, pid} = Runner.start_link(task_run_id: task_run.id, task_job_id: task_job.id)
+      assert {:error, ^error_message} = Runner.run(pid)
+
+      assert_received {:status_update, "pending"}
+      assert_received {:status_update, "failure"}
+    end
   end
 
   defp stub_podman(pod_id, container_id, exit_status) do

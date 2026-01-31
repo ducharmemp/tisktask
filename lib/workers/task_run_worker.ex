@@ -31,17 +31,20 @@ defmodule Workers.TaskRunWorker do
     build_file =
       Filesystem.build_file_for(build_context, Triggers.type(task_run.trigger))
 
-    Buildah.build_image(
-      build_context,
-      build_file,
-      "#{triggering_repository_name}:#{triggering_sha}",
-      into: TaskLogs.stream_to(task_run)
-    )
+    case Buildah.build_image(
+           build_context,
+           build_file,
+           "#{triggering_repository_name}:#{triggering_sha}",
+           into: TaskLogs.stream_to(task_run)
+         ) do
+      {:ok, _tag} ->
+        _all_jobs = Enum.map(all_jobs_to_run, &Tasks.create_job!(task_run, %{program_path: &1}))
+        Tasks.complete_run!(task_run)
+        :ok
 
-    _all_jobs = Enum.map(all_jobs_to_run, &Tasks.create_job!(task_run, %{program_path: &1}))
-
-    Tasks.complete_run!(task_run)
-
-    :ok
+      {:error, _output} ->
+        Tasks.fail_run!(task_run)
+        {:error, "Image build failed"}
+    end
   end
 end
