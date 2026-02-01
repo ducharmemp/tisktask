@@ -16,8 +16,9 @@ defmodule Tisktask.Application do
       {Oban, Application.fetch_env!(:tisktask, Oban)},
       {Phoenix.PubSub, name: Tisktask.PubSub},
       {Task.Supervisor, name: Tisktask.TaskSupervisor},
-      # Start a worker by calling: Tisktask.Worker.start_link(arg)
-      # {Tisktask.Worker, arg},
+      {Registry, keys: :duplicate, name: Tisktask.Tasks.RunnerRegistry},
+      # Resume any pods that were paused due to SIGINT
+      Tisktask.Tasks.ResumePausedPods,
       # Start to serve requests, typically the last entry
       TisktaskWeb.Endpoint
     ]

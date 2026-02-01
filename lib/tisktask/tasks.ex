@@ -17,6 +17,7 @@ defmodule Tisktask.Tasks do
 
   def get_run!(id), do: all_task_runs_query() |> Repo.get!(id) |> Repo.preload(trigger: :source_control_repository)
   def get_job!(id), do: Repo.get!(Job, id)
+  def get_job_by_pod_id(pod_id), do: Repo.get_by(Job, pod_id: pod_id)
 
   def preload_task_jobs(run) do
     Repo.preload(run, :jobs)

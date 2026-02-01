@@ -87,6 +87,23 @@ defmodule Tisktask.Containers.Podman do
     end
   end
 
+  @doc """
+  Returns a list of paused pod IDs.
+  """
+  def list_paused_pods do
+    case System.cmd(podman_exe(), ["pod", "ls", "--filter", "status=paused", "--format", "{{.ID}}"],
+           stderr_to_stdout: true
+         ) do
+      {output, 0} ->
+        output
+        |> String.trim()
+        |> String.split("\n", trim: true)
+
+      _ ->
+        []
+    end
+  end
+
   def cleanup(pod_id, container_id) do
     System.cmd(podman_exe(), ["rm", container_id])
     System.cmd(podman_exe(), ["pod", "stop", pod_id])

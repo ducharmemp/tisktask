@@ -7,6 +7,7 @@ Mimic.copy(Tisktask.Containers.Podman)
 Mimic.copy(Tisktask.Commands)
 Mimic.copy(Tisktask.Triggers)
 Mimic.copy(Tisktask.Tasks.Env)
+Mimic.copy(Tisktask.Tasks.Runner)
 Mimic.copy(Tisktask.TaskLogs)
 
 Ecto.Adapters.SQL.Sandbox.mode(Tisktask.Repo, :manual)

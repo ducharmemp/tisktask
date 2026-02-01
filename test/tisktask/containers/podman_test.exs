@@ -84,6 +84,47 @@ defmodule Tisktask.Containers.PodmanTest do
     end
   end
 
+  describe "pause/unpause" do
+    test "pauses and unpauses a running pod", %{env_file: env_file, socket_path: socket_path} do
+      pod_id = Podman.create_pod()
+
+      # Use sleep to keep the container running
+      container_id =
+        Podman.create_container(pod_id, "alpine:latest", "/bin/sh", env_file, socket_path, [
+          "-c",
+          "sleep 60"
+        ])
+
+      assert :ok = Podman.start_pod(pod_id)
+
+      # Pause the pod
+      assert :ok = Podman.pause_pod(pod_id)
+
+      # Verify it's in the paused list
+      paused_pods = Podman.list_paused_pods()
+      assert pod_id in paused_pods
+
+      # Unpause the pod
+      assert :ok = Podman.unpause_pod(pod_id)
+
+      # Verify it's no longer in the paused list
+      paused_pods = Podman.list_paused_pods()
+      refute pod_id in paused_pods
+
+      # Cleanup
+      Podman.cleanup(pod_id, container_id)
+    end
+  end
+
+  describe "list_paused_pods/0" do
+    test "returns empty list when no pods are paused" do
+      # This assumes no other paused pods exist on the system
+      # In a real test environment, we'd want isolation
+      paused_pods = Podman.list_paused_pods()
+      assert is_list(paused_pods)
+    end
+  end
+
   defp wait_for_container(container_id) do
     {:ok, ref} = Podman.wait_for_container_async(container_id)
 

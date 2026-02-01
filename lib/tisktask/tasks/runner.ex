@@ -9,6 +9,20 @@ defmodule Tisktask.Tasks.Runner do
   - `:waiting` - Waiting for container to complete
   - `:cleanup` - Removing pod and container
   - `:completed` - Job finished, reply sent to caller
+  - `:interrupted` - SIGINT received, pod paused, retry signaled
+  - `:resuming` - Resuming a previously paused pod
+
+  ## SIGINT Handling
+
+  When `broadcast_sigint/0` is called, all running runners will:
+  1. Pause their executing pod via `Podman.pause_pod/1`
+  2. Reply to the caller with `{:retry, :sigint}`
+  3. Stop normally (without cleanup, preserving the paused pod)
+
+  ## Resume Mode
+
+  Runners can be started in resume mode via `start_link_resume/1` to resume
+  a previously paused pod. This is used on startup to continue interrupted jobs.
   """
   use GenServer
 
@@ -40,17 +54,26 @@ defmodule Tisktask.Tasks.Runner do
   def start_link(opts) do
     task_run_id = Keyword.fetch!(opts, :task_run_id)
     task_job_id = Keyword.fetch!(opts, :task_job_id)
-    GenServer.start_link(__MODULE__, {task_run_id, task_job_id}, opts)
+    GenServer.start_link(__MODULE__, {:new, task_run_id, task_job_id}, opts)
+  end
+
+  def start_link_resume(opts) do
+    task_job_id = Keyword.fetch!(opts, :task_job_id)
+    GenServer.start_link(__MODULE__, {:resume, task_job_id}, opts)
   end
 
   def run(pid) do
     GenServer.call(pid, :run, :infinity)
   end
 
+  def resume(pid) do
+    GenServer.call(pid, :resume, :infinity)
+  end
+
   # Server Callbacks
 
   @impl true
-  def init({task_run_id, task_job_id}) do
+  def init({:new, task_run_id, task_job_id}) do
     task_run = Tasks.get_run!(task_run_id)
     task_job = Tasks.get_job!(task_job_id)
 
@@ -70,9 +93,28 @@ defmodule Tisktask.Tasks.Runner do
     {:ok, state}
   end
 
+  def init({:resume, task_job_id}) do
+    task_job = Tasks.get_job!(task_job_id)
+    task_run = Tasks.get_run!(task_job.task_run_id)
+
+    state = %__MODULE__{
+      task_run: task_run,
+      task_job: task_job,
+      pod_id: task_job.pod_id,
+      container_id: task_job.container_id,
+      stage: :initialized_for_resume
+    }
+
+    {:ok, state}
+  end
+
   @impl true
   def handle_call(:run, from, %{stage: :initialized} = state) do
     {:noreply, %{state | caller: from}, {:continue, :initializing}}
+  end
+
+  def handle_call(:resume, from, %{stage: :initialized_for_resume} = state) do
+    {:noreply, %{state | caller: from}, {:continue, :resuming}}
   end
 
   # State: initializing
@@ -136,6 +178,7 @@ defmodule Tisktask.Tasks.Runner do
 
     case Podman.start_pod(pod_id) do
       :ok ->
+        Registry.register(Tisktask.Tasks.RunnerRegistry, :runners, pod_id)
         Task.start(fn -> Podman.stream_logs(pod_id, TaskLogs.stream_to(task_job)) end)
         {:noreply, %{state | stage: :running}, {:continue, :waiting}}
 
@@ -152,6 +195,25 @@ defmodule Tisktask.Tasks.Runner do
     {:ok, ref} = Podman.wait_for_container_async(container_id)
 
     {:noreply, %{state | wait_ref: ref, stage: :waiting}}
+  end
+
+  # State: resuming
+  # Resumes a previously paused pod
+  def handle_continue(:resuming, state) do
+    %{task_run: task_run, task_job: task_job, pod_id: pod_id} = state
+
+    # Re-establish command socket listener for the container
+    command_socket = Commands.spawn_command_listeners(task_run, task_job)
+
+    case Podman.unpause_pod(pod_id) do
+      :ok ->
+        Registry.register(Tisktask.Tasks.RunnerRegistry, :runners, pod_id)
+        Task.start(fn -> Podman.stream_logs(pod_id, TaskLogs.stream_to(task_job)) end)
+        {:noreply, %{state | command_socket: command_socket, stage: :resuming}, {:continue, :waiting}}
+
+      {:error, reason} ->
+        {:noreply, %{state | error: reason, stage: :resuming}, {:continue, :cleanup}}
+    end
   end
 
   # State: cleanup
@@ -194,5 +256,28 @@ defmodule Tisktask.Tasks.Runner do
   @impl true
   def handle_info({:container_exited, ref, _container_id, exit_status}, %{wait_ref: ref} = state) do
     {:noreply, %{state | exit_status: exit_status}, {:continue, :cleanup}}
+  end
+
+  # Handle SIGINT - pause the pod and signal retry needed
+  def handle_info(:sigint, %{stage: stage, pod_id: pod_id, caller: caller} = state)
+      when stage in [:running, :waiting] and pod_id != nil do
+    Podman.pause_pod(pod_id)
+    GenServer.reply(caller, {:retry, :sigint})
+    {:stop, :normal, %{state | stage: :interrupted}}
+  end
+
+  def handle_info(:sigint, state) do
+    # Ignore SIGINT if not in a running state or no pod to pause
+    {:noreply, state}
+  end
+
+  @doc """
+  Broadcasts SIGINT to all running task runners on this node.
+  Each runner will pause its pod and reply with {:retry, :sigint}.
+  """
+  def broadcast_sigint do
+    Registry.dispatch(Tisktask.Tasks.RunnerRegistry, :runners, fn entries ->
+      for {pid, _pod_id} <- entries, do: send(pid, :sigint)
+    end)
   end
 end

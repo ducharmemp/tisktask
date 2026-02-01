@@ -191,6 +191,191 @@ defmodule Tisktask.Tasks.RunnerTest do
     end
   end
 
+  describe "SIGINT handling" do
+    test "broadcast_sigint pauses pod and returns {:retry, :sigint}", ctx do
+      %{task_run: task_run, task_job: task_job} = ctx
+
+      pod_id = "test-pod-123"
+      container_id = "test-container-456"
+      test_pid = self()
+
+      stub(Podman, :create_pod, fn -> pod_id end)
+      stub(Podman, :create_container, fn _, _, _, _, _ -> container_id end)
+      stub(Podman, :start_pod, fn _ -> :ok end)
+      stub(Podman, :stream_logs, fn _, _ -> :ok end)
+
+      # This will block waiting for container exit
+      stub(Podman, :wait_for_container_async, fn _cid ->
+        ref = make_ref()
+        # Don't send exit message - we'll send SIGINT instead
+        {:ok, ref}
+      end)
+
+      stub(Podman, :pause_pod, fn p_id ->
+        send(test_pid, {:pause_called, p_id})
+        :ok
+      end)
+
+      {:ok, pid} = Runner.start_link(task_run_id: task_run.id, task_job_id: task_job.id)
+
+      # Start run in a task so we can send SIGINT
+      run_task =
+        Task.async(fn ->
+          Runner.run(pid)
+        end)
+
+      # Wait for the runner to reach waiting stage
+      Process.sleep(50)
+
+      # Send SIGINT
+      send(pid, :sigint)
+
+      # Should get retry response
+      assert {:retry, :sigint} = Task.await(run_task)
+
+      # Verify pause was called
+      assert_received {:pause_called, ^pod_id}
+    end
+
+    test "broadcast_sigint sends sigint to all registered runners", ctx do
+      %{task_run: task_run, task_job: task_job} = ctx
+
+      pod_id = "test-pod-123"
+      container_id = "test-container-456"
+      test_pid = self()
+
+      stub(Podman, :create_pod, fn -> pod_id end)
+      stub(Podman, :create_container, fn _, _, _, _, _ -> container_id end)
+      stub(Podman, :start_pod, fn _ -> :ok end)
+      stub(Podman, :stream_logs, fn _, _ -> :ok end)
+
+      stub(Podman, :wait_for_container_async, fn _cid ->
+        ref = make_ref()
+        {:ok, ref}
+      end)
+
+      stub(Podman, :pause_pod, fn p_id ->
+        send(test_pid, {:pause_called, p_id})
+        :ok
+      end)
+
+      {:ok, pid} = Runner.start_link(task_run_id: task_run.id, task_job_id: task_job.id)
+
+      run_task =
+        Task.async(fn ->
+          Runner.run(pid)
+        end)
+
+      # Wait for runner to register
+      Process.sleep(50)
+
+      # Broadcast SIGINT to all runners
+      Runner.broadcast_sigint()
+
+      assert {:retry, :sigint} = Task.await(run_task)
+      assert_received {:pause_called, ^pod_id}
+    end
+
+    test "ignores sigint when not in running/waiting stage", ctx do
+      %{task_run: task_run, task_job: task_job} = ctx
+
+      {:ok, pid} = Runner.start_link(task_run_id: task_run.id, task_job_id: task_job.id)
+
+      # Send SIGINT before run is called (stage is :initialized)
+      send(pid, :sigint)
+
+      # Process should still be alive
+      assert Process.alive?(pid)
+    end
+  end
+
+  describe "resume/1" do
+    test "resumes a paused pod and returns exit status", ctx do
+      %{task_job: task_job} = ctx
+
+      pod_id = "test-pod-123"
+      container_id = "test-container-456"
+      test_pid = self()
+
+      # Update job with pod_id and container_id (simulating a previously interrupted job)
+      task_job = Tasks.update_job!(task_job, %{pod_id: pod_id, container_id: container_id})
+
+      stub(Commands, :spawn_command_listeners, fn _, _ -> "/tmp/socket" end)
+      stub(TaskLogs, :stream_to, fn _ -> fn _ -> :ok end end)
+      stub(Triggers, :update_remote_status, fn _, _, _, _ -> :ok end)
+
+      stub(Podman, :unpause_pod, fn p_id ->
+        send(test_pid, {:unpause_called, p_id})
+        :ok
+      end)
+
+      stub(Podman, :stream_logs, fn _, _ -> :ok end)
+      stub(Podman, :cleanup, fn _, _ -> :ok end)
+
+      stub(Podman, :wait_for_container_async, fn _cid ->
+        ref = make_ref()
+        send(self(), {:container_exited, ref, container_id, 0})
+        {:ok, ref}
+      end)
+
+      {:ok, pid} = Runner.start_link_resume(task_job_id: task_job.id)
+
+      assert {:ok, 0} = Runner.resume(pid)
+      assert_received {:unpause_called, ^pod_id}
+    end
+
+    test "returns error when unpause fails", ctx do
+      %{task_job: task_job} = ctx
+
+      pod_id = "test-pod-123"
+      container_id = "test-container-456"
+
+      task_job = Tasks.update_job!(task_job, %{pod_id: pod_id, container_id: container_id})
+
+      stub(Commands, :spawn_command_listeners, fn _, _ -> "/tmp/socket" end)
+      stub(Triggers, :update_remote_status, fn _, _, _, _ -> :ok end)
+
+      stub(Podman, :unpause_pod, fn _ -> {:error, "pod not found"} end)
+      stub(Podman, :cleanup, fn _, _ -> :ok end)
+
+      {:ok, pid} = Runner.start_link_resume(task_job_id: task_job.id)
+
+      assert {:error, "pod not found"} = Runner.resume(pid)
+    end
+
+    test "re-establishes command socket on resume", ctx do
+      %{task_job: task_job} = ctx
+
+      pod_id = "test-pod-123"
+      container_id = "test-container-456"
+      test_pid = self()
+
+      task_job = Tasks.update_job!(task_job, %{pod_id: pod_id, container_id: container_id})
+
+      stub(Commands, :spawn_command_listeners, fn run, job ->
+        send(test_pid, {:socket_spawned, run.id, job.id})
+        "/tmp/socket"
+      end)
+
+      stub(TaskLogs, :stream_to, fn _ -> fn _ -> :ok end end)
+      stub(Triggers, :update_remote_status, fn _, _, _, _ -> :ok end)
+      stub(Podman, :unpause_pod, fn _ -> :ok end)
+      stub(Podman, :stream_logs, fn _, _ -> :ok end)
+      stub(Podman, :cleanup, fn _, _ -> :ok end)
+
+      stub(Podman, :wait_for_container_async, fn _cid ->
+        ref = make_ref()
+        send(self(), {:container_exited, ref, container_id, 0})
+        {:ok, ref}
+      end)
+
+      {:ok, pid} = Runner.start_link_resume(task_job_id: task_job.id)
+
+      assert {:ok, 0} = Runner.resume(pid)
+      assert_received {:socket_spawned, _, _}
+    end
+  end
+
   defp stub_podman(pod_id, container_id, exit_status) do
     stub(Podman, :create_pod, fn -> pod_id end)
     stub(Podman, :create_container, fn _, _, _, _, _ -> container_id end)
